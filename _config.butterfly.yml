@@ -1,0 +1,81 @@
+# 导航菜单
+menu:
+  首页: / || fas fa-home
+  归档: /archives/ || fas fa-archive
+  分类: /categories/ || fas fa-folder-open
+  标签: /tags/ || fas fa-tags
+  相册: /gallery/ || fas fa-images
+  关于: /about/ || fas fa-heart
+
+# MathJax 数学公式
+mathjax:
+  enable: true
+  per_page: true
+
+# 搜索
+search:
+  use: local
+
+# 代码高亮
+highlight_theme: mac
+
+# 社交图标
+social:
+  github: https://github.com/aidon-chen || fab fa-github
+
+# 版权
+post_copyright:
+  enable: true
+  decode: false
+  author_href: https://aidon-chen.github.io
+  license: CC BY-NC-SA 4.0
+  license_url: https://creativecommons.org/licenses/by-nc-sa/4.0/
+
+# 字数统计
+wordcount:
+  enable: true
+  post_wordcount: true
+  min2read: true
+  total_wordcount: true
+
+# 图片懒加载
+lazyload:
+  enable: true
+  field: site
+  placeholder: data:image/gif;base64,R0lGODlhAQABAIAAAAAAAP///yH5BAEAAAAALAAAAAABAAEAAAIBRAA7
+  blur: false
+
+# 页脚
+footer:
+  owner:
+    enable: true
+    since: 2026
+
+# 头像
+avatar:
+  img: /img/avatar.png
+  effect: false
+
+# 目录
+toc:
+  post: true
+  page: false
+  number: true
+  expand: false
+  style_simple: false
+  scroll_percent: true
+
+# 评论（暂时关闭，后续可开 Giscus）
+comments:
+  use: null
+  text: true
+  lazyload: false
+
+# 右上角按钮
+rightside:
+  enable:
+    readmode: true
+    font: true
+    translate: true
+    darkmode: true
+    scroll: true
