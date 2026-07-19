@@ -1,7 +1,7 @@
 https://aidon-chen.github.io/tags/index.html
+https://aidon-chen.github.io/categories/index.html
 https://aidon-chen.github.io/gallery/index.html
 https://aidon-chen.github.io/about/index.html
-https://aidon-chen.github.io/categories/index.html
 https://aidon-chen.github.io/2026/07/19/hello-world/
 https://aidon-chen.github.io/2025/07/15/image-tags-demo/
 https://aidon-chen.github.io/2025/07/15/latex-math-guide/

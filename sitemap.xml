@@ -11,6 +11,15 @@
   </url>
   
   <url>
+    <loc>https://aidon-chen.github.io/categories/index.html</loc>
+    
+    <lastmod>2026-07-19</lastmod>
+    
+    <changefreq>monthly</changefreq>
+    <priority>0.6</priority>
+  </url>
+  
+  <url>
     <loc>https://aidon-chen.github.io/gallery/index.html</loc>
     
     <lastmod>2026-07-19</lastmod>
@@ -21,15 +30,6 @@
   
   <url>
     <loc>https://aidon-chen.github.io/about/index.html</loc>
-    
-    <lastmod>2026-07-19</lastmod>
-    
-    <changefreq>monthly</changefreq>
-    <priority>0.6</priority>
-  </url>
-  
-  <url>
-    <loc>https://aidon-chen.github.io/categories/index.html</loc>
     
     <lastmod>2026-07-19</lastmod>
     
