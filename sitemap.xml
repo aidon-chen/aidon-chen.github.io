@@ -2,7 +2,7 @@
 <urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
   
   <url>
-    <loc>https://aidon-chen.github.io/categories/index.html</loc>
+    <loc>https://aidon-chen.github.io/about/index.html</loc>
     
     <lastmod>2026-07-20</lastmod>
     
@@ -11,7 +11,7 @@
   </url>
   
   <url>
-    <loc>https://aidon-chen.github.io/about/index.html</loc>
+    <loc>https://aidon-chen.github.io/categories/index.html</loc>
     
     <lastmod>2026-07-20</lastmod>
     
@@ -30,6 +30,15 @@
   
   <url>
     <loc>https://aidon-chen.github.io/tags/index.html</loc>
+    
+    <lastmod>2026-07-20</lastmod>
+    
+    <changefreq>monthly</changefreq>
+    <priority>0.6</priority>
+  </url>
+  
+  <url>
+    <loc>https://aidon-chen.github.io/2026/07/20/github-pages-hexo-butterfly-deploy/</loc>
     
     <lastmod>2026-07-20</lastmod>
     
@@ -74,6 +83,48 @@
 
   
   <url>
+    <loc>https://aidon-chen.github.io/tags/Hexo/</loc>
+    <lastmod>2026-07-20</lastmod>
+    <changefreq>weekly</changefreq>
+    <priority>0.2</priority>
+  </url>
+  
+  <url>
+    <loc>https://aidon-chen.github.io/tags/GitHub-Pages/</loc>
+    <lastmod>2026-07-20</lastmod>
+    <changefreq>weekly</changefreq>
+    <priority>0.2</priority>
+  </url>
+  
+  <url>
+    <loc>https://aidon-chen.github.io/tags/GitHub-Actions/</loc>
+    <lastmod>2026-07-20</lastmod>
+    <changefreq>weekly</changefreq>
+    <priority>0.2</priority>
+  </url>
+  
+  <url>
+    <loc>https://aidon-chen.github.io/tags/%E8%87%AA%E5%8A%A8%E9%83%A8%E7%BD%B2/</loc>
+    <lastmod>2026-07-20</lastmod>
+    <changefreq>weekly</changefreq>
+    <priority>0.2</priority>
+  </url>
+  
+  <url>
+    <loc>https://aidon-chen.github.io/tags/Butterfly/</loc>
+    <lastmod>2026-07-20</lastmod>
+    <changefreq>weekly</changefreq>
+    <priority>0.2</priority>
+  </url>
+  
+  <url>
+    <loc>https://aidon-chen.github.io/tags/%E8%B8%A9%E5%9D%91/</loc>
+    <lastmod>2026-07-20</lastmod>
+    <changefreq>weekly</changefreq>
+    <priority>0.2</priority>
+  </url>
+  
+  <url>
     <loc>https://aidon-chen.github.io/tags/%E9%9A%8F%E7%AC%94/</loc>
     <lastmod>2026-07-20</lastmod>
     <changefreq>weekly</changefreq>
@@ -96,13 +147,6 @@
   
   <url>
     <loc>https://aidon-chen.github.io/tags/%E5%A4%9A%E5%AA%92%E4%BD%93/</loc>
-    <lastmod>2026-07-20</lastmod>
-    <changefreq>weekly</changefreq>
-    <priority>0.2</priority>
-  </url>
-  
-  <url>
-    <loc>https://aidon-chen.github.io/tags/Butterfly/</loc>
     <lastmod>2026-07-20</lastmod>
     <changefreq>weekly</changefreq>
     <priority>0.2</priority>
@@ -144,6 +188,13 @@
   </url>
   
 
+  
+  <url>
+    <loc>https://aidon-chen.github.io/categories/%E6%95%99%E7%A8%8B/</loc>
+    <lastmod>2026-07-20</lastmod>
+    <changefreq>weekly</changefreq>
+    <priority>0.2</priority>
+  </url>
   
   <url>
     <loc>https://aidon-chen.github.io/categories/%E7%94%9F%E6%B4%BB/</loc>
