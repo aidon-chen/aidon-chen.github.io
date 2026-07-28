@@ -291,6 +291,49 @@ git push origin main
 
 ---
 
+## 十、日常 Obsidian 笔记变博客（方式 C：目录联结 — 已启用）
+
+如果你日常用 `H:\obsidian\blog` 这个 Obsidian Vault 记笔记，想在同一 Vault 里直接写博客文章，这就是你的方式。
+
+### 当前连接状态
+
+你的日常 Obsidian Vault（`H:\obsidian\blog`）里已存在「博客」文件夹，它通过 Windows 目录联结（junction）指向本 Hexo 项目的 `source/_posts`：
+
+```
+H:\obsidian\blog\博客  ──→  G:\project\workbuddy\githubpages\blog\source\_posts
+```
+
+> 已验证：在「博客」内创建 / 修改任何文件，`source/_posts` 即时同步。
+
+### 发布流程
+
+1. 日常打开 Obsidian（`H:\obsidian\blog` Vault），左侧文件列表里就能看到「博客」文件夹。
+2. 在「博客」里新建笔记，按博客格式写（front-matter 写法见上文第二节，标准 Markdown）。
+3. 保存后文章已在 `source/_posts` 里。
+4. 切到 `G:\...blog` 目录 → `git add` + `git commit` + `git push origin main` → 上线。
+
+> 也可以配合第九节的方式 B：在 `G:\...blog` 再开一个独立 Vault 装 Obsidian Git，自动提交 junction 过来的文章。
+
+### 兼容注意事项（重要）
+
+这是在你日常 Obsidian Vault 里写**博客**笔记，不是写普通笔记。必须避开以下 Obsidian 专属语法——否则上线后是乱码或破图：
+
+| Obsidian 写法 | 能否在博客用 | 替代做法 |
+| --- | --- | --- |
+| `![[图片.png]]` | ❌ Hexo 不认 | 用 `![alt](/img/xxx.png)`，图片放 `source/img/` |
+| `[[双链]]` | ❌ 不渲染 | 写标准链接 `[文字](URL)` |
+| `> [!note]` callout | ❌ 不渲染 | 用普通段落 + 小标题 |
+| `#标签` 写法 | ⚠️ Hexo 不认 | 标签写在 front-matter 的 `tags:` 字段里 |
+| `附件/` 里的图片 | ❌ Hexo 找不到 | 博客配图统一放 `source/img/`，引用 `/img/xxx` |
+
+### 一个心理边界
+
+只把**确定要公开的、排版完整的**笔记放进「博客」文件夹。「博客」= junction = `source/_posts`，推 `main` 就上线，别误把草稿 / 私人笔记丢进去。
+
+---
+
+---
+
 ## 附：项目结构速览
 
 ```
