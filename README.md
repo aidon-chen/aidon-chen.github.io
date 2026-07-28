@@ -242,6 +242,52 @@ git push origin main
 
 ---
 
+## 九、用 Obsidian + Obsidian Git 一键发布
+
+如果你习惯在 Obsidian 里写作，可以直接把它连到这个博客，实现「写文 → 一键发布」，全程不用碰命令行。
+
+**原理**：Obsidian Git 插件复用本文件夹已有的 `.git`。在 Obsidian 内点一下 `Commit & push`，就等价于 `git push origin main`，随即触发上面的 GitHub Actions 自动部署。这对应前面讨论的「方式 B」。
+
+### 1. 把博客目录变成 Obsidian Vault
+
+- 打开 Obsidian → 「打开其他仓库 / Open another vault」→ 选择文件夹 `G:\project\workbuddy\githubpages\blog`。
+- **建议只打开 `blog/source/_posts/`**：整个项目里有 `node_modules/` 等目录，整目录打开会非常杂乱。
+- 当前项目还没有 `.obsidian` 配置，Obsidian 打开时会自动生成。
+
+### 2. 安装 Obsidian Git 插件
+
+- 设置 → 第三方插件 → 关闭安全模式 → 浏览社区插件 → 搜索 **Obsidian Git** → 安装并启用。
+
+### 3. 配置 Git 凭证（关键，针对本机环境）
+
+本仓库 remote 是 SSH：`git@github.com:aidon-chen/aidon-chen.github.io.git`。
+
+- **SSH（对本仓库可用）**：本机 SSH 密钥 `~/.ssh/id_ed25519_github` 正是对 `aidon-chen.github.io` 有效的受限 deploy key，所以**对这个仓库** SSH 推送是通的。确保 SSH agent 已加载该密钥（或 `~/.ssh/config` 里为该 host 指定 `IdentityFile`）。
+- **HTTPS + PAT（最稳妥）**：若 SSH 报 `Repository not found`，在 Obsidian Git 设置里把 remote 改为 `https://github.com/aidon-chen/aidon-chen.github.io.git`，并用 fine-grained PAT 作为密码（本机 `gh` 已登录时，git-credential-manager 也可免填）。
+- 建议先在终端跑一次 `git push`，确认凭证 OK，再交给 Obsidian Git。
+
+### 4. 推荐的 Obsidian Git 设置
+
+- `Auto commit` + `Auto push` / `Vault backup interval`：可设为每 10 分钟自动提交并推送。**注意：每次推送都会触发站点重新部署**，按需开启。
+- `Commit message`：留空用默认，或设模板如 `docs: update from obsidian`。
+- `Pull before push`：开启，避免多端/多人冲突。
+- `Disable push`：若只想本地版本管理、暂不自动上线，可关掉自动 push，改用手动命令面板执行 `Obsidian Git: Commit & push`。
+
+### 5. 发布流程（全程在 Obsidian 内）
+
+1. 在 `source/_posts/` 写文章（front-matter 写法见上文第二、三节）。
+2. 命令面板（Ctrl/Cmd+P）→ `Obsidian Git: Commit & push`。
+3. 等待 1~2 分钟，访问 <https://aidon-chen.github.io> 查看新文章。
+
+### 6. 注意事项
+
+- 同「八」：Obsidian 的 `[[双链]]`、`![[图片]]`、`> [!note]` 等语法 Hexo 默认不渲染，博客文章请用标准 Markdown（图片用 `![alt](/img/xxx.png)`）。
+- `.obsidian/` 目录：当前未被 `.gitignore` 忽略，会被跟踪进仓库。不想提交 Vault 配置就把它加进 `.gitignore`；想团队共享配置则保留。
+- 若仓库当前有其它未提交改动，Obsidian Git 的自动提交会一并带入；发布前建议保持工作区干净，或按需挑选文件。
+- 自动推送会触发部署，这是预期行为。
+
+---
+
 ## 附：项目结构速览
 
 ```
