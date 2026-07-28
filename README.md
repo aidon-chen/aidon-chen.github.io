@@ -224,6 +224,8 @@ git push origin main
 - **不要**手动修改或提交 `gh-pages` 分支，它由 CI 覆盖。
 - `node_modules/`、`public/`、`db.json` 等已被 `.gitignore` 忽略，不需要提交。
 
+> ⚠️ **部署前先确认 CI 已激活**：GitHub 仓库 `Settings → Actions → General` 需允许工作流运行（若提示权限不足，本地执行 `gh auth refresh -s workflow` 后再推 `main`）。若 CI 未激活，推 `main` **不会**自动更到线上——此时需手动部署 `gh-pages` 分支，或先激活 CI。
+
 ---
 
 ## 八、常见问题与提醒
@@ -250,9 +252,10 @@ git push origin main
 
 ### 1. 把博客目录变成 Obsidian Vault
 
-- 打开 Obsidian → 「打开其他仓库 / Open another vault」→ 选择文件夹 `G:\project\workbuddy\githubpages\blog`。
+- 这个本地 `blog/` 文件夹**已经是一个 git 仓库，且其 `origin` 正是线上 Pages 的源仓库 `aidon-chen.github.io`**（可 `git remote -v` 验证）。也就是说「本地仓库 ↔ 远程仓库」这条线已经连好了。
+- 它**目前还不是一个 Obsidian Vault**——本地没有 `.obsidian` 配置。用 Obsidian 打开它就会自动生成 `.obsidian`，从而成为「对应的 Obsidian 仓库」。
+- 打开方式：Obsidian → 「打开其他仓库 / Open another vault」→ 选择文件夹 `G:\project\workbuddy\githubpages\blog`。
 - **建议只打开 `blog/source/_posts/`**：整个项目里有 `node_modules/` 等目录，整目录打开会非常杂乱。
-- 当前项目还没有 `.obsidian` 配置，Obsidian 打开时会自动生成。
 
 ### 2. 安装 Obsidian Git 插件
 
