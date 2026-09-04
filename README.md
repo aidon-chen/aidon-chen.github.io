@@ -81,20 +81,20 @@ toc: true
 
 ### 字段说明
 
-| 字段 | 含义 | 备注 |
-| --- | --- | --- |
-| `title` | 文章标题 | 必填 |
-| `date` | 发布时间 | 必填，格式 `YYYY-MM-DD HH:mm:ss` |
-| `updated` | 更新时间 | 可选 |
-| `tags` | 标签 | 可用列表或内联数组，见下 |
-| `categories` | 分类 | 可用列表或内联数组，见下 |
-| `keywords` | SEO 关键词 | 可选 |
-| `description` | 摘要/描述 | 可选，用于列表页与 SEO |
-| `top_img` | 文章顶部大图 | Butterfly 专属，可留空 |
-| `cover` | 文章封面图 | Butterfly 专属，可留空 |
-| `mathjax` | 是否启用数学公式 | 需要 LaTeX 公式时设为 `true` |
-| `comments` | 是否开启评论 | Butterfly 专属 |
-| `toc` | 是否显示文章目录 | Butterfly 专属 |
+| 字段            | 含义       | 备注                          |
+| ------------- | -------- | --------------------------- |
+| `title`       | 文章标题     | 必填                          |
+| `date`        | 发布时间     | 必填，格式 `YYYY-MM-DD HH:mm:ss` |
+| `updated`     | 更新时间     | 可选                          |
+| `tags`        | 标签       | 可用列表或内联数组，见下                |
+| `categories`  | 分类       | 可用列表或内联数组，见下                |
+| `keywords`    | SEO 关键词  | 可选                          |
+| `description` | 摘要/描述    | 可选，用于列表页与 SEO               |
+| `top_img`     | 文章顶部大图   | Butterfly 专属，可留空            |
+| `cover`       | 文章封面图    | Butterfly 专属，可留空            |
+| `mathjax`     | 是否启用数学公式 | 需要 LaTeX 公式时设为 `true`       |
+| `comments`    | 是否开启评论   | Butterfly 专属                |
+| `toc`         | 是否显示文章目录 | Butterfly 专属                |
 
 **标签 / 分类的两种写法**（等效，任选其一）：
 

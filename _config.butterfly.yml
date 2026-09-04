@@ -1,3 +1,10 @@
+# 侧边栏分类卡片（expand: true 显示展开箭头，可展开子分类层级）
+aside:
+  card_categories:
+    enable: true
+    limit: 0
+    expand: true
+
 # 导航菜单
 menu:
   首页: / || fas fa-home
