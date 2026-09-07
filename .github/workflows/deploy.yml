@@ -24,7 +24,22 @@ jobs:
           cache: "npm"
 
       - name: Install dependencies
-        run: npm ci
+        # npm ci 偶发网络抖动：外层重试4次 + npm 网络超时，避免单次失败拖垮部署
+        run: |
+          for attempt in 1 2 3 4; do
+            echo "--- npm ci 尝试 $attempt/4 ---"
+            if npm ci --fetch-timeout=180000 --fetch-retries=3; then
+              echo "npm ci 成功"
+              exit 0
+            fi
+            echo "npm ci 第 $attempt 次失败"
+            if [ "$attempt" -lt 4 ]; then
+              echo "30 秒后重试..."
+              sleep 30
+            fi
+          done
+          echo "npm ci 连续 4 次失败，部署中止"
+          exit 1
 
       - name: Build site
         run: npx hexo clean && npx hexo generate
