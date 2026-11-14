@@ -56,6 +56,15 @@
   </url>
   
   <url>
+    <loc>https://aidon-chen.github.io/2026/10/13/trae-1010-campus-activity/</loc>
+    
+    <lastmod>2026-11-14</lastmod>
+    
+    <changefreq>monthly</changefreq>
+    <priority>0.6</priority>
+  </url>
+  
+  <url>
     <loc>https://aidon-chen.github.io/about/index.html</loc>
     
     <lastmod>2026-11-14</lastmod>
@@ -184,27 +193,6 @@
   </url>
   
   <url>
-    <loc>https://aidon-chen.github.io/tags/%E6%BC%94%E7%A4%BA/</loc>
-    <lastmod>2026-11-14</lastmod>
-    <changefreq>weekly</changefreq>
-    <priority>0.2</priority>
-  </url>
-  
-  <url>
-    <loc>https://aidon-chen.github.io/tags/%E5%A4%9A%E5%AA%92%E4%BD%93/</loc>
-    <lastmod>2026-11-14</lastmod>
-    <changefreq>weekly</changefreq>
-    <priority>0.2</priority>
-  </url>
-  
-  <url>
-    <loc>https://aidon-chen.github.io/tags/Markdown/</loc>
-    <lastmod>2026-11-14</lastmod>
-    <changefreq>weekly</changefreq>
-    <priority>0.2</priority>
-  </url>
-  
-  <url>
     <loc>https://aidon-chen.github.io/tags/LaTeX/</loc>
     <lastmod>2026-11-14</lastmod>
     <changefreq>weekly</changefreq>
@@ -227,6 +215,27 @@
   
   <url>
     <loc>https://aidon-chen.github.io/tags/%E6%95%99%E7%A8%8B/</loc>
+    <lastmod>2026-11-14</lastmod>
+    <changefreq>weekly</changefreq>
+    <priority>0.2</priority>
+  </url>
+  
+  <url>
+    <loc>https://aidon-chen.github.io/tags/%E6%BC%94%E7%A4%BA/</loc>
+    <lastmod>2026-11-14</lastmod>
+    <changefreq>weekly</changefreq>
+    <priority>0.2</priority>
+  </url>
+  
+  <url>
+    <loc>https://aidon-chen.github.io/tags/%E5%A4%9A%E5%AA%92%E4%BD%93/</loc>
+    <lastmod>2026-11-14</lastmod>
+    <changefreq>weekly</changefreq>
+    <priority>0.2</priority>
+  </url>
+  
+  <url>
+    <loc>https://aidon-chen.github.io/tags/Markdown/</loc>
     <lastmod>2026-11-14</lastmod>
     <changefreq>weekly</changefreq>
     <priority>0.2</priority>
@@ -324,6 +333,41 @@
   </url>
   
   <url>
+    <loc>https://aidon-chen.github.io/tags/TRAE/</loc>
+    <lastmod>2026-11-14</lastmod>
+    <changefreq>weekly</changefreq>
+    <priority>0.2</priority>
+  </url>
+  
+  <url>
+    <loc>https://aidon-chen.github.io/tags/%E6%A0%A1%E5%9B%AD%E6%B4%BB%E5%8A%A8/</loc>
+    <lastmod>2026-11-14</lastmod>
+    <changefreq>weekly</changefreq>
+    <priority>0.2</priority>
+  </url>
+  
+  <url>
+    <loc>https://aidon-chen.github.io/tags/%E6%B4%BB%E5%8A%A8%E5%A4%8D%E7%9B%98/</loc>
+    <lastmod>2026-11-14</lastmod>
+    <changefreq>weekly</changefreq>
+    <priority>0.2</priority>
+  </url>
+  
+  <url>
+    <loc>https://aidon-chen.github.io/tags/Node-js/</loc>
+    <lastmod>2026-11-14</lastmod>
+    <changefreq>weekly</changefreq>
+    <priority>0.2</priority>
+  </url>
+  
+  <url>
+    <loc>https://aidon-chen.github.io/tags/SQLite/</loc>
+    <lastmod>2026-11-14</lastmod>
+    <changefreq>weekly</changefreq>
+    <priority>0.2</priority>
+  </url>
+  
+  <url>
     <loc>https://aidon-chen.github.io/tags/web/</loc>
     <lastmod>2026-11-14</lastmod>
     <changefreq>weekly</changefreq>
@@ -369,6 +413,13 @@
   
   <url>
     <loc>https://aidon-chen.github.io/categories/%E5%B7%A5%E7%A8%8B%E6%96%B9%E6%B3%95/</loc>
+    <lastmod>2026-11-14</lastmod>
+    <changefreq>weekly</changefreq>
+    <priority>0.2</priority>
+  </url>
+  
+  <url>
+    <loc>https://aidon-chen.github.io/categories/%E6%A0%A1%E5%9B%AD%E6%B4%BB%E5%8A%A8/</loc>
     <lastmod>2026-11-14</lastmod>
     <changefreq>weekly</changefreq>
     <priority>0.2</priority>
