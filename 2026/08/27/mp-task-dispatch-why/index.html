@@ -1,0 +1,605 @@
+<!DOCTYPE html><html lang="zh-CN" data-theme="light"><head><meta charset="UTF-8"><meta http-equiv="X-UA-Compatible" content="IE=edge"><meta name="viewport" content="width=device-width, initial-scale=1.0,viewport-fit=cover"><title>视觉中心的任务老是堆在群里，我干脆写了个小程序 | aidon's blog</title><meta name="author" content="aidon"><meta name="copyright" content="aidon"><meta name="format-detection" content="telephone=no"><meta name="theme-color" content="#ffffff"><meta name="description" content="四十个人的视觉中心，任务靠群消息派、靠脑子记。这篇讲我为什么做这个小程序，以及第一期砍掉了哪些想法。">
+<meta property="og:type" content="article">
+<meta property="og:title" content="视觉中心的任务老是堆在群里，我干脆写了个小程序">
+<meta property="og:url" content="https://aidon-chen.github.io/2026/08/27/mp-task-dispatch-why/index.html">
+<meta property="og:site_name" content="aidon&#39;s blog">
+<meta property="og:description" content="四十个人的视觉中心，任务靠群消息派、靠脑子记。这篇讲我为什么做这个小程序，以及第一期砍掉了哪些想法。">
+<meta property="og:locale" content="zh_CN">
+<meta property="og:image" content="https://aidon-chen.github.io/img/avatar.png">
+<meta property="article:published_time" content="2026-08-27T13:00:00.000Z">
+<meta property="article:modified_time" content="2026-11-14T07:44:10.850Z">
+<meta property="article:author" content="aidon">
+<meta property="article:tag" content="项目复盘">
+<meta property="article:tag" content="云开发">
+<meta property="article:tag" content="云函数">
+<meta property="article:tag" content="云数据库">
+<meta name="twitter:card" content="summary">
+<meta name="twitter:image" content="https://aidon-chen.github.io/img/avatar.png"><script type="application/ld+json">{
+  "@context": "https://schema.org",
+  "@type": "BlogPosting",
+  "headline": "视觉中心的任务老是堆在群里，我干脆写了个小程序",
+  "url": "https://aidon-chen.github.io/2026/08/27/mp-task-dispatch-why/",
+  "image": "https://aidon-chen.github.io/img/avatar.png",
+  "datePublished": "2026-08-27T13:00:00.000Z",
+  "dateModified": "2026-11-14T07:44:10.850Z",
+  "author": [
+    {
+      "@type": "Person",
+      "name": "aidon",
+      "url": "https://aidon-chen.github.io"
+    }
+  ]
+}</script><link rel="shortcut icon" href="/img/favicon.ico"><link rel="canonical" href="https://aidon-chen.github.io/2026/08/27/mp-task-dispatch-why/index.html"><link rel="preconnect" href="//cdn.jsdelivr.net"/><link rel="preconnect" href="//busuanzi.ibruce.info"/><link rel="stylesheet" href="/css/index.css?v=5.6.0"><link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@fortawesome/fontawesome-free@7.3.1/css/all.min.css"><script>
+    (() => {
+      
+    const saveToLocal = {
+      set: (key, value, ttl) => {
+        const data = { value }
+
+        if (ttl != null) {
+          data.expiry = Date.now() + ttl * 86400000
+        }
+
+        localStorage.setItem(key, JSON.stringify(data))
+      },
+      get: key => {
+        const itemStr = localStorage.getItem(key)
+        if (!itemStr) return
+
+        try {
+          const data = JSON.parse(itemStr)
+
+          if (data.expiry && Date.now() > data.expiry) {
+            localStorage.removeItem(key)
+            return
+          }
+
+          return data.value
+        } catch {
+          localStorage.removeItem(key)
+        }
+      }
+    }
+
+    const scriptCache = new Map()
+    const cssCache = new Map()
+    window.btf = {
+      saveToLocal,
+      getScript: (url, attr = {}) => {
+        if (scriptCache.has(url)) {
+          return scriptCache.get(url)
+        }
+
+        const promise = new Promise((resolve, reject) => {
+          const script = document.createElement('script')
+
+          script.src = url
+          script.async = true
+
+          for (const key in attr) {
+            script.setAttribute(key, attr[key])
+          }
+
+          script.onload = resolve
+          script.onerror = reject
+
+          document.head.appendChild(script)
+        })
+
+        scriptCache.set(url, promise)
+
+        return promise
+      },
+      getCSS: (url, id) => {
+        if (cssCache.has(url)) {
+          return cssCache.get(url)
+        }
+
+        const promise = new Promise((resolve, reject) => {
+          const link = document.createElement('link')
+
+          link.rel = 'stylesheet'
+          link.href = url
+
+          if (id) {
+            link.id = id
+          }
+
+          link.onload = resolve
+          link.onerror = reject
+
+          document.head.appendChild(link)
+        })
+
+        cssCache.set(url, promise)
+
+        return promise
+      },
+      addGlobalFn: (key, fn, name = false, parent = window) => {
+        if (!false && key.startsWith('pjax')) return
+        const globalFn = parent.globalFn || {}
+        globalFn[key] = globalFn[key] || {}
+        globalFn[key][name || Object.keys(globalFn[key]).length] = fn
+        parent.globalFn = globalFn
+      }
+    }
+  
+      
+      const metaThemeColor = document.querySelector('meta[name="theme-color"]')
+      const activateDarkMode = () => {
+        document.documentElement.dataset.theme = 'dark'
+        if (metaThemeColor !== null) {
+          metaThemeColor.setAttribute('content', '#0d0d0d')
+        }
+      }
+      const activateLightMode = () => {
+        document.documentElement.dataset.theme = 'light'
+        if (metaThemeColor !== null) {
+          metaThemeColor.setAttribute('content', '#ffffff')
+        }
+      }
+
+      btf.activateDarkMode = activateDarkMode
+      btf.activateLightMode = activateLightMode
+
+      const theme = saveToLocal.get('theme')
+    
+          theme === 'dark' ? activateDarkMode() : theme === 'light' ? activateLightMode() : null
+        
+      
+      const asideStatus = saveToLocal.get('aside-status')
+      if (asideStatus !== undefined) {
+        document.documentElement.classList.toggle('hide-aside', asideStatus === 'hide')
+      }
+    
+      
+    const detectApple = () => {
+      if (/iPad|iPhone|iPod|Macintosh/.test(navigator.userAgent)) {
+        document.documentElement.classList.add('apple')
+      }
+    }
+    detectApple()
+  
+    })()
+  </script><script>const GLOBAL_CONFIG = {
+  root: '/',
+  algolia: undefined,
+  localSearch: undefined,
+  translate: undefined,
+  highlight: {"plugin":"highlight.js","highlightCopy":true,"highlightLang":true,"highlightHeightLimit":false,"highlightFullpage":false,"highlightMacStyle":false},
+  copy: {
+    success: '复制成功',
+    error: '复制失败',
+    noSupport: '浏览器不支持'
+  },
+  relativeDate: {
+    homepage: false,
+    post: false
+  },
+  runtime: '',
+  dateSuffix: {
+    just: '刚刚',
+    min: '分钟前',
+    hour: '小时前',
+    day: '天前',
+    month: '个月前'
+  },
+  copyright: undefined,
+  lightbox: 'null',
+  Snackbar: undefined,
+  infinitegrid: {
+    js: 'https://cdn.jsdelivr.net/npm/@egjs/infinitegrid@4.13.0/dist/infinitegrid.min.js',
+    buttonText: '加载更多'
+  },
+  isPhotoFigcaption: false,
+  islazyloadPlugin: true,
+  isAnchor: false,
+  percent: {
+    toc: true,
+    rightside: false,
+  },
+  autoDarkmode: false
+}</script><script id="config-diff">var GLOBAL_CONFIG_SITE = {
+  title: '视觉中心的任务老是堆在群里，我干脆写了个小程序',
+  isHighlightShrink: false,
+  isToc: true,
+  pageType: 'post'
+}</script><meta name="generator" content="Hexo 7.3.0"></head><body><div id="sidebar"><div id="menu-mask"></div><div id="sidebar-menus"><div class="avatar-img text-center"><img src="data:image/gif;base64,R0lGODlhAQABAIAAAAAAAP///yH5BAEAAAAALAAAAAABAAEAAAIBRAA7" data-lazy-src="/img/avatar.png" onerror="this.onerror=null;this.src='/img/friend_404.gif'" alt="avatar"/></div><div class="site-data text-center"><a href="/archives/"><div class="headline">文章</div><div class="length-num">24</div></a><a href="/tags/"><div class="headline">标签</div><div class="length-num">70</div></a><a href="/categories/"><div class="headline">分类</div><div class="length-num">16</div></a></div><div class="menus_items"><div class="menus_item"><a class="site-page" href="/"><i class="fa-fw fas fa-home"></i><span> 首页</span></a></div><div class="menus_item"><a class="site-page" href="/archives/"><i class="fa-fw fas fa-archive"></i><span> 归档</span></a></div><div class="menus_item"><a class="site-page" href="/categories/"><i class="fa-fw fas fa-folder-open"></i><span> 分类</span></a></div><div class="menus_item"><a class="site-page" href="/tags/"><i class="fa-fw fas fa-tags"></i><span> 标签</span></a></div><div class="menus_item"><a class="site-page" href="/gallery/"><i class="fa-fw fas fa-images"></i><span> 相册</span></a></div><div class="menus_item"><a class="site-page" href="/about/"><i class="fa-fw fas fa-heart"></i><span> 关于</span></a></div></div></div></div><div class="post" id="body-wrap"><header class="post-bg" id="page-header"><nav id="nav"><span id="blog-info"><a class="nav-site-title" href="/"><span class="site-name">aidon's blog</span></a><a class="nav-page-title" href="/"><span class="site-name">视觉中心的任务老是堆在群里，我干脆写了个小程序</span><span class="site-name"><i class="fa-solid fa-circle-arrow-left"></i><span>  返回首页</span></span></a></span><div id="menus"><div id="search-button"><span class="site-page social-icon search"><i class="fas fa-search fa-fw"></i><span> 搜索</span></span></div><div class="menus_items"><div class="menus_item"><a class="site-page" href="/"><i class="fa-fw fas fa-home"></i><span> 首页</span></a></div><div class="menus_item"><a class="site-page" href="/archives/"><i class="fa-fw fas fa-archive"></i><span> 归档</span></a></div><div class="menus_item"><a class="site-page" href="/categories/"><i class="fa-fw fas fa-folder-open"></i><span> 分类</span></a></div><div class="menus_item"><a class="site-page" href="/tags/"><i class="fa-fw fas fa-tags"></i><span> 标签</span></a></div><div class="menus_item"><a class="site-page" href="/gallery/"><i class="fa-fw fas fa-images"></i><span> 相册</span></a></div><div class="menus_item"><a class="site-page" href="/about/"><i class="fa-fw fas fa-heart"></i><span> 关于</span></a></div></div><div id="toggle-menu"><span class="site-page"><i class="fas fa-bars fa-fw"></i></span></div></div></nav><div id="post-info"><h1 class="post-title">视觉中心的任务老是堆在群里，我干脆写了个小程序</h1><div id="post-meta"><div class="meta-firstline"><span class="post-meta-date"><i class="far fa-calendar-alt fa-fw post-meta-icon"></i><span class="post-meta-label">发表于</span><time class="post-meta-date-created" datetime="2026-08-27T13:00:00.000Z" title="发表于 2026-08-27 21:00:00">2026-08-27</time><span class="post-meta-separator">|</span><i class="fas fa-history fa-fw post-meta-icon"></i><span class="post-meta-label">更新于</span><time class="post-meta-date-updated" datetime="2026-11-14T07:44:10.850Z" title="更新于 2026-11-14 15:44:10">2026-11-14</time></span><span class="post-meta-categories"><span class="post-meta-separator">|</span><i class="fas fa-inbox fa-fw post-meta-icon"></i><a class="post-meta-categories" href="/categories/%E5%BE%AE%E4%BF%A1%E5%B0%8F%E7%A8%8B%E5%BA%8F/">微信小程序</a><i class="fas fa-angle-right post-meta-separator"></i><i class="fas fa-inbox fa-fw post-meta-icon"></i><a class="post-meta-categories" href="/categories/%E5%BE%AE%E4%BF%A1%E5%B0%8F%E7%A8%8B%E5%BA%8F/%E4%BB%BB%E5%8A%A1%E6%B4%BE%E5%8F%91/">任务派发</a></span></div><div class="meta-secondline"><span class="post-meta-separator">|</span><span class="post-meta-wordcount"><i class="far fa-file-word fa-fw post-meta-icon"></i><span class="post-meta-label">总字数:</span><span class="word-count">2k</span><span class="post-meta-separator">|</span><i class="far fa-clock fa-fw post-meta-icon"></i><span class="post-meta-label">阅读时长:</span><span>5分钟</span></span><span class="post-meta-separator">|</span><span class="post-meta-pv-cv" id="" data-flag-title=""><i class="far fa-eye fa-fw post-meta-icon"></i><span class="post-meta-label">浏览量:</span><span id="busuanzi_value_page_pv"><i class="fa-solid fa-spinner fa-spin"></i></span></span></div></div></div></header><main class="layout" id="content-inner"><div id="post"><article class="container post-content" id="article-container"><p>视觉中心的群里每天都有这种消息：</p>
+<blockquote>
+<p>周三下午有人有空吗，思学楼有个会议要拍。</p>
+</blockquote>
+<p>然后下面两三个人回「我」「我可以」。看起来很热闹，问题是过两天没人记得最后是谁去的；或者两个人都以为对方会去，到了现场发现没人。主任那边更难受，谁手上还有活、哪条任务卡住了，全靠翻聊天记录。</p>
+<p>我在中心待了一段时间，觉得这事不该一直这样。六月底开始动手，做了一个任务派发的小程序。</p>
+<h2 id="我想要的其实就四件事"><a href="#我想要的其实就四件事" class="headerlink" title="我想要的其实就四件事"></a>我想要的其实就四件事</h2><p>第一，任务能发出去，指派到具体的人，不是往群里一扔等认领。</p>
+<p>第二，被指派的人能确认。确认这个动作很重要，它把「我看到了」和「我会去」分开了。</p>
+<p>第三，状态看得见。待确认、已确认、进行中、已完成，至少主任打开列表就知道哪条卡住了。</p>
+<p>第四，交付有记录。谁做的、什么时候做完的，期末统计稿分的时候不用再翻群。</p>
+<p>这四件事之外的，都是后来慢慢加的。</p>
+<h2 id="需求是怎么收敛的"><a href="#需求是怎么收敛的" class="headerlink" title="需求是怎么收敛的"></a>需求是怎么收敛的</h2><p>一开始我列了一长串：任务派发、值班表、机位管理、统计报表、新闻匹配、导出、评分、任务模板、随机选人。列完发现，如果全做，这个暑假就没了。</p>
+<p>于是拿一张纸，按「没有它，第一期能不能用」划了一遍。</p>
+<p>留下的：登录和角色、任务创建与指派、任务状态、人员状态、值班表、机位。这些是主任每天要碰的东西，缺一个都还得回群里。</p>
+<p>划掉的：新闻匹配、报表导出、评分、模板、随机选人。它们有用，但不是第一期的痛点。比如新闻匹配，是期末填稿分时才需要的；评分更像锦上添花，任务都没跑顺，评了也没人看。</p>
+<p>后来证明这个判断基本对，但也没完全对。评分在八月底又被加了回来，因为任务跑起来之后，主任确实想留个评价；统计和新闻匹配也陆续补了。人的需求不会老老实实待在你划的框里，这很正常，先把主干跑通比一次做全重要。</p>
+<h2 id="为什么用云开发"><a href="#为什么用云开发" class="headerlink" title="为什么用云开发"></a>为什么用云开发</h2><p>一开始想过买台服务器。算了一下账：一台最便宜的云服务器，加上域名、备案、HTTPS、数据库，一个月几十块倒不是出不起，问题是没人维护。项目就我一个人写，白天上课，晚上改代码，实在不想把时间花在「服务器又挂了」「证书过期了」上面。</p>
+<p>云开发把服务器、数据库、存储打包成了一个不用运维的东西。对这个小程序来说，最划算的是登录态：云函数里 <code>cloud.getWXContext().OPENID</code> 直接就是当前用户的微信身份，不用自己发 token、存 session、做鉴权中间件。前端连登录框都不用画，打开小程序就有身份。</p>
+<p>代价是绑定微信。以后要做 Web 管理端，云开发就不够用了，这是后话。</p>
+<p>另一个选择是前端直接读写数据库。云开发的数据库权限规则确实能配，但它只能判断「这条记录是不是你的」，判断不了「你是不是这个部门的主任」「这条任务能不能从待确认直接改成已完成」。所以这个项目最后所有写操作都走云函数，前端只负责调接口和展示。</p>
+<h2 id="页面长什么样"><a href="#页面长什么样" class="headerlink" title="页面长什么样"></a>页面长什么样</h2><p>底部五个 tab：任务、值班表、统计、我的、测试。测试 tab 只在开发和体验版显示，正式版会隐藏，这个后面单独写。</p>
+<p>「任务」页是主界面，上面是状态统计，下面是任务卡片。普通成员只看得到指派给自己的；部门主任看自己创建的加跨部门任务；中心主任看全部。这个范围是在 <code>getTasks</code> 云函数里收窄的，不是前端过滤，前端传什么参数都绕不过去。</p>
+<p>「值班表」按周展示，成员可以标自己哪个课节有空、哪个课段不可用。最初想做成一张矩阵，后来发现手机上矩阵根本看不清，改成了按天和课节分段。</p>
+<p>「统计」页是给期末填稿分用的，能看到参与次数和任务明细。第一版做得比较粗，只到「这个人这学期参与了几次」这个粒度。</p>
+<p>剩下的页面在「我的」里：消息中心、状态上报、机位管理、权限密钥、新闻匹配。主任还会多一个「创建任务」和「生成密钥」的入口。</p>
+<h2 id="三张核心表"><a href="#三张核心表" class="headerlink" title="三张核心表"></a>三张核心表</h2><p>云数据库是文档型的，没有表结构，但心里还是要有张图。这个项目主要用了几张集合：</p>
+<p><code>users</code> 放人。一条记录对应一个微信用户，字段有 <code>openid</code>、<code>name</code>、<code>department</code>、<code>role</code>、<code>semester</code>、<code>weeklySchedule</code>。<code>role</code> 是权限的核心，普通成员是 <code>member</code>，部门主任是 <code>photo_director</code> 或 <code>video_director</code>，中心主任是 <code>center_director</code>。新用户默认是 <code>member</code>，主任拿一次性密钥升级。</p>
+<p><code>tasks</code> 放任务。标题、类型、起止时间、地点、联络人、指派人、创建人、状态、优先级、关联机位、学期，还有后来加的评价数组和平均分。<code>assignedTo</code> 是一个用户 <code>_id</code> 数组，一个人可以同时被指派多条任务，一条任务也可以指派多个人。</p>
+<p><code>user_status</code> 放状态记录。成员每次上报「空闲 &#x2F; 忙碌 &#x2F; 不可用」都会新增一条，不是覆盖旧值。这样主任能看到「他上周三说不可用，原因是考试」，而不是只知道当前状态。历史记录在排班时很有用。</p>
+<p>另外还有 <code>locations</code>（机位）、<code>keys</code>（权限密钥）、<code>notifications</code>（小程序内通知）、<code>news_cache</code>（新闻匹配缓存）。这些不是第一期的主干，但后面都派上了用场。</p>
+<p>学期字段 <code>semester</code> 是我坚持加的，格式是 <code>2026-autumn</code> 这种英文。换学期之后，任务列表和统计自然切到新的一桶，不会把去年的数据混进来。</p>
+<h2 id="第一期做完的样子"><a href="#第一期做完的样子" class="headerlink" title="第一期做完的样子"></a>第一期做完的样子</h2><p>到八月底，主任发一条任务，打开小程序、填表、指派完，大概一两分钟。被指派的人会收到一条小程序内通知，「我的」tab 上有个红点。点进去能确认、开始、完成。主任在任务详情里能直接改状态、取消任务、编辑内容。</p>
+<p>值班表能看，状态能报，机位能查，统计能按学期拉出每个人的参与次数。</p>
+<p>没做好的地方也很明显。新闻匹配的页面有了，但爬虫的稳定性一般，学校新闻网改版就得跟着修；值班矩阵只做了简版，复杂的排班还得靠人脑；通知绕了一圈才改成小程序内通知，中间那版订阅消息基本没发出去过，这个坑我单独写在另一篇里。</p>
+<h2 id="如果重来一次"><a href="#如果重来一次" class="headerlink" title="如果重来一次"></a>如果重来一次</h2><p>我会更早把「状态流转」当成一件正经事来设计，而不是先写页面再补规则。现在代码里有一张合法转换表，但没真正拿来校验，前端靠按钮藏，后端靠约定，这种设计早晚会出问题。具体哪里不对，写在 <a href="/2026/09/05/mp-task-dispatch-state-machine/" title="一个任务从发布到验收，中间转了几手">一个任务从发布到验收，中间转了几手</a> 里了。</p>
+<p>云开发本身没什么后悔的。它适合这种几十个人、内部使用、没有专职运维的项目。等哪天要做 Web 端、要跑复杂报表、要对接外部系统，再考虑搬走。这个概念我整理在 <a href="/2026/09/12/mp-cloudbase-intro/" title="第一次用云开发，云函数、数据库、存储各管什么">第一次用云开发，云函数、数据库、存储各管什么</a>。</p>
+</article><div class="post-copyright"><div class="post-copyright__author"><span class="post-copyright-meta"><i class="fas fa-circle-user fa-fw"></i>文章作者: </span><span class="post-copyright-info"><a href="https://aidon-chen.github.io">aidon</a></span></div><div class="post-copyright__type"><span class="post-copyright-meta"><i class="fas fa-square-arrow-up-right fa-fw"></i>文章链接: </span><span class="post-copyright-info"><a href="https://aidon-chen.github.io/2026/08/27/mp-task-dispatch-why/">https://aidon-chen.github.io/2026/08/27/mp-task-dispatch-why/</a></span></div><div class="post-copyright__notice"><span class="post-copyright-meta"><i class="fas fa-circle-exclamation fa-fw"></i>版权声明: </span><span class="post-copyright-info">本博客所有文章除特别声明外，均采用 <a href="https://creativecommons.org/licenses/by-nc-sa/4.0/" target="_blank">CC BY-NC-SA 4.0</a> 许可协议。转载请注明来源 <a href="https://aidon-chen.github.io" target="_blank">aidon's blog</a>！</span></div></div><div class="tag_share"><div class="post-meta__tag-list"><a class="post-meta__tags" href="/tags/%E9%A1%B9%E7%9B%AE%E5%A4%8D%E7%9B%98/">项目复盘</a><a class="post-meta__tags" href="/tags/%E4%BA%91%E5%BC%80%E5%8F%91/">云开发</a><a class="post-meta__tags" href="/tags/%E4%BA%91%E5%87%BD%E6%95%B0/">云函数</a><a class="post-meta__tags" href="/tags/%E4%BA%91%E6%95%B0%E6%8D%AE%E5%BA%93/">云数据库</a></div><div class="post-share"><div class="social-share" data-image="/img/avatar.png" data-sites="facebook,x,wechat,weibo,qq"></div><link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/butterfly-extsrc@1.1.6/sharejs/dist/css/share.min.css" media="print" onload="this.media='all'"><script src="https://cdn.jsdelivr.net/npm/butterfly-extsrc@1.1.6/sharejs/dist/js/social-share.min.js" defer></script></div></div><nav class="pagination-post" id="pagination"><a class="pagination-related" href="/2026/09/03/web-topic/" title="Web 技术框架概览"><div class="cover" style="background: var(--default-bg-color)"></div><div class="info"><div class="info-1"><div class="info-item-1">上一篇</div><div class="info-item-2">Web 技术框架概览</div></div><div class="info-2"><div class="info-item-1">Web 技术框架概览现代 Web 开发中，前端框架帮助开发者以组件化的方式构建复杂界面，提升开发效率与可维护性。本文介绍当前最主流的几个 Web 前端框架，并进行横向对比与选型建议。 主流前端框架ReactReact 由 Meta（原 Facebook）开发，是目前生态最庞大的前端框架。它基于 组件 + 单向数据流 的核心理念，配合虚拟 DOM 实现高效的界面更新。  核心特点：函数式组件、Hooks、JSX 语法 适用场景：大型中后台系统、跨平台应用（React Native） 生态：Redux&#x2F;Zustand（状态管理）、Next.js（服务端渲染）  VueVue 由尤雨溪开发，以渐进式框架著称，上手门槛低，单文件组件（SFC）写法直观。  核心特点：响应式数据绑定、模板语法、组合式 API（Composition API） 适用场景：中后台管理界面、中小型项目、需要快速上手的场景 生态：Pinia（状态管理）、Nuxt.js（服务端渲染）、Element Plus（UI 组件库）  AngularAngular 是谷歌维护的重量级框架，提供开箱即用的完整解决方案...</div></div></div></a><a class="pagination-related" href="/2026/08/10/mp-dev-tools-automation/" title="微信开发者工具我用得最顺的几处，顺便聊两个脚本"><div class="cover" style="background: var(--default-bg-color)"></div><div class="info text-right"><div class="info-1"><div class="info-item-1">下一篇</div><div class="info-item-2">微信开发者工具我用得最顺的几处，顺便聊两个脚本</div></div><div class="info-2"><div class="info-item-1">六月底开始写视觉中心那个任务派发小程序，这是我第一次正经做小程序。之前写过网页和 Python 脚本，进到开发者工具里还是有点懵：项目结构、AppID、云函数目录，每一样都要先弄明白。用了两个月，工具本身没多复杂，真正省时间的是几个固定习惯，还有两个后来补的脚本。 先把项目结构认清楚我导入的是仓库根目录，因为这个项目没有单独的 miniprogram/ 子目录。判断方法很简单：app.js、app.json、project.config.json 在哪一层，开发者工具就导入哪一层。选错一层，最常见的报错是「app.json 未找到」。 project.config.json 里有三个字段值得先看： 12345&#123;  &quot;appid&quot;: &quot;wx8fdb0c0acb28ee1a&quot;,  &quot;cloudfunctionRoot&quot;: &quot;cloudfunctions/&quot;,  &quot;libVersion&quot;: &quot;2.32.3&quot;&#125;  appid 别用测试号。云开发环境是...</div></div></div></a></nav><div class="relatedPosts"><div class="headline"><i class="fas fa-thumbs-up fa-fw"></i><span>相关推荐</span></div><div class="relatedPosts-list"><a class="pagination-related" href="/2026/09/12/mp-cloudbase-intro/" title="第一次用云开发，云函数、数据库、存储各管什么"><div class="cover" style="background: var(--default-bg-color)"></div><div class="info text-center"><div class="info-1"><div class="info-item-1"><i class="far fa-calendar-alt fa-fw"></i> 2026-09-12</div><div class="info-item-2">第一次用云开发，云函数、数据库、存储各管什么</div></div><div class="info-2"><div class="info-item-1">任务派发小程序跑了两周之后，我才回头把云开发的概念理清楚。之前是照着文档抄，能跑就行；等到要加功能、要排查问题时，发现脑子里没有一张完整的图，经常不知道一个请求到底经过了哪些地方。 这篇写给和我一样第一次接触云开发的人。概念不多，但每个概念最好挂一个项目里的真实例子，不然很容易看完就忘。 云开发是什么简单说，微信把服务器、数据库、文件存储打包成了一个服务，你不用买机器、不用配域名、不用自己装数据库。小程序里调一个接口，代码就跑在微信的服务器上。 它和买云服务器的区别在于「谁负责运维」。买服务器，操作系统、运行时、数据库、备份、证书都要自己管；云开发把这些收走了，你只写函数和查询。它和云托管的区别在于「管到哪一层」：云托管还要你提供镜像或代码包，自己定端口和容器；云开发连容器都不需要，一个函数目录就是一个部署单元。 对这个项目来说，最实际的好处是登录。云函数里一行 cloud.getWXContext().OPENID 就能拿到当前用户的微信身份，不用自己发 token、存 session、写鉴权中间件。坏处也在这儿：整套东西长在微信里，离开微信就不好用。 云函数云函数就是一段放在...</div></div></div></a><a class="pagination-related" href="/2026/09/05/mp-task-dispatch-state-machine/" title="一个任务从发布到验收，中间转了几手"><div class="cover" style="background: var(--default-bg-color)"></div><div class="info text-center"><div class="info-1"><div class="info-item-1"><i class="far fa-calendar-alt fa-fw"></i> 2026-09-05</div><div class="info-item-2">一个任务从发布到验收，中间转了几手</div></div><div class="info-2"><div class="info-item-1">标题里的「验收」其实是我后来加的。代码里没有单独的验收状态，最后一步就是成员点「标记完成」，主任事后可以改回来。写这篇文章的时候我翻了 updateTask 的代码，发现真正麻烦的不是状态有几种，而是谁能改、在什么情况下能改，以及两个人同时改会发生什么。 五个状态任务状态定义在 app.js 的 taskStatusMap 里： 1234567taskStatusMap: &#123;  pending:    &#123; label: &#x27;待确认&#x27;, color: &#x27;#FF9800&#x27; &#125;,  confirmed:  &#123; label: &#x27;已确认&#x27;, color: &#x27;#2196F3&#x27; &#125;,  in_progress:&#123; label: &#x27;进行中&#x27;, color: &#x27;#4CAF50&#x27; &#125;,  completed:  &#123; label: &#x27;已完成&#x27;, color: &#x27;#9E9E9E&...</div></div></div></a><a class="pagination-related" href="/2026/10/20/mp-deploy-overview/" title="小程序从写完到能让人用，中间要过哪几道关"><div class="cover" style="background: var(--default-bg-color)"></div><div class="info text-center"><div class="info-1"><div class="info-item-1"><i class="far fa-calendar-alt fa-fw"></i> 2026-10-20</div><div class="info-item-2">小程序从写完到能让人用，中间要过哪几道关</div></div><div class="info-2"><div class="info-item-1">做完两个小程序项目之后，我发现“写完”和“能让人用”之间隔着的不是一点代码，而是一串很容易被低估的事。第一个项目用云开发，第二个用云托管，两条路都走过一遍，这篇把部署这件事拆开讲清楚，给同样一个人做项目的人参考。 部署到底包含什么代码在开发者工具里跑通，只是本地环境成立。要让别人也能用，至少要同时满足这些条件：    部分 要解决的问题    小程序包 体验版、审核、正式版，缺一个用户都打不开   后端服务 接口部署在公网，能稳定运行，挂了能重启   数据库 初始化、账号权限、备份，数据丢了没法补救   域名与备案 小程序请求域名、支付回调域名，国内服务器还要备案   HTTPS 小程序和支付都要求安全连接，证书过期会直接不可用   审核资料 主体、类目、隐私协议，填错会被驳回   任何一项没弄好，用户看到的就是“打不开”“加载失败”或者“系统异常”。而这些错误在本地都不会出现。 两条路：云开发和云托管微信生态里常见的两种后端放法，差别不在语言，而在“谁管运行环境”。 云开发把后端拆成云函数、云数据库、云存储。不用买服务器，不用配 Nginx，不用管证书，登录态直接拿 openi...</div></div></div></a><a class="pagination-related" href="/2026/09/18/lakes-requirements/" title="湖里 Lakes：给精酿餐吧做点餐系统，需求是怎么理出来的"><div class="cover" style="background: var(--default-bg-color)"></div><div class="info text-center"><div class="info-1"><div class="info-item-1"><i class="far fa-calendar-alt fa-fw"></i> 2026-09-18</div><div class="info-item-2">湖里 Lakes：给精酿餐吧做点餐系统，需求是怎么理出来的</div></div><div class="info-2"><div class="info-item-1">湖里 Lakes 是朋友开的一家精酿餐吧。我去吃饭那天是周五，店里满座，服务员拿着小本子一桌一桌记，字写得飞快；后厨和收银台之间靠喊，「3 号桌加一份薯条」「门口那位买单」。中途来了两个客人要外带，服务员拿张便签记了酒名，转头去忙别的，那张便签就再也没出现过。 这场景不算新鲜，但对我挺有冲击。店主不是没想过办法，他用过扫码点单的 SaaS，也试过让客人自己写纸条，最后都回到服务员记单。原因很具体：要么菜单对不上店里的酒，要么改个价格要等平台审核，要么收银和点单是两套数据，晚上对账还得再算一遍。 这是我做的第二个小程序项目。第一个是给学校视觉中心做的任务派发工具，需求方是自己人，沟通靠吼就行。这次面对的是真实经营，需求不是「我想要一个什么功能」，而是「我这一天哪里最难受」。 先看店里怎么运转我在店里待了几个晚上，没急着画原型，先看他们怎么干活。  客人坐下，服务员递菜单，等几分钟，记在纸上，送到后厨； 高峰期服务员不够，点单排队，后厨出餐也排队； 客人吃完喊买单，收银台翻本子算钱，碰上优惠或者会员余额，还要再查一遍； 外带和存酒是另一套记录，有时候写在纸上，有时候靠店员记在脑子里；...</div></div></div></a><a class="pagination-related" href="/2026/09/25/mp-cloudbase-pitfalls/" title="云开发踩坑：权限、订阅消息、定时器"><div class="cover" style="background: var(--default-bg-color)"></div><div class="info text-center"><div class="info-1"><div class="info-item-1"><i class="far fa-calendar-alt fa-fw"></i> 2026-09-25</div><div class="info-item-2">云开发踩坑：权限、订阅消息、定时器</div></div><div class="info-2"><div class="info-item-1">这篇不铺垫，直接写踩过的坑。每个坑都是实际撞上、改过代码的，不是从文档里抄的注意事项。 权限：前端直写看起来很美云开发的数据库权限规则有四种模式，配起来很简单。问题是它只能回答「这条记录是不是你创建的」，回答不了「你是不是主任」「这条任务能不能改」。 举个例子。任务由主任创建，指派给成员。如果用「仅创建者可读写」，成员读不到这条任务，因为记录是主任创建的；如果用「所有用户可读」，全中心的人都能看到别人的任务；如果放开写权限，任何人都能把任务状态改成已完成。规则里没有「被指派人可以改状态但不能改标题」这一档。 所以这个项目最后所有写操作都放在云函数里。云函数用的是管理员权限，不受数据库权限规则限制，判断逻辑全在代码里。前端只调 wx.cloud.callFunction，不直接碰 db.collection。 但有一个地方没守规矩。app.js 里刷新未读红点时，直接查了数据库： 1234const db = wx.cloud.database();const res = await db.collection(&#x27;notifications&#x27;)  .where(...</div></div></div></a></div></div></div><div class="aside-content" id="aside-content"><div class="card-widget card-info text-center"><div class="avatar-img"><img src="data:image/gif;base64,R0lGODlhAQABAIAAAAAAAP///yH5BAEAAAAALAAAAAABAAEAAAIBRAA7" data-lazy-src="/img/avatar.png" onerror="this.onerror=null;this.src='/img/friend_404.gif'" alt="avatar"/></div><div class="author-info-name">aidon</div><div class="author-info-description"></div><div class="site-data"><a href="/archives/"><div class="headline">文章</div><div class="length-num">24</div></a><a href="/tags/"><div class="headline">标签</div><div class="length-num">70</div></a><a href="/categories/"><div class="headline">分类</div><div class="length-num">16</div></a></div><a id="card-info-btn" target="_blank" rel="noopener" href="https://github.com/xxxxxx"><i class="fab fa-github"></i><span>Follow Me</span></a><div class="card-info-social-icons"><a class="social-icon" href="https://github.com/aidon-chen" target="_blank" title="fab fa-github"><i class="github"></i></a></div></div><div class="card-widget card-announcement"><div class="item-headline"><i class="fas fa-bullhorn fa-shake"></i><span>公告</span></div><div class="announcement_content">This is my Blog</div></div><div class="sticky_layout"><div class="card-widget" id="card-toc"><div class="item-headline"><i class="fas fa-stream"></i><span>目录</span><span class="toc-percentage"></span></div><div class="toc-content"><ol class="toc"><li class="toc-item toc-level-2"><a class="toc-link" href="#%E6%88%91%E6%83%B3%E8%A6%81%E7%9A%84%E5%85%B6%E5%AE%9E%E5%B0%B1%E5%9B%9B%E4%BB%B6%E4%BA%8B"><span class="toc-number">1.</span> <span class="toc-text">我想要的其实就四件事</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#%E9%9C%80%E6%B1%82%E6%98%AF%E6%80%8E%E4%B9%88%E6%94%B6%E6%95%9B%E7%9A%84"><span class="toc-number">2.</span> <span class="toc-text">需求是怎么收敛的</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#%E4%B8%BA%E4%BB%80%E4%B9%88%E7%94%A8%E4%BA%91%E5%BC%80%E5%8F%91"><span class="toc-number">3.</span> <span class="toc-text">为什么用云开发</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#%E9%A1%B5%E9%9D%A2%E9%95%BF%E4%BB%80%E4%B9%88%E6%A0%B7"><span class="toc-number">4.</span> <span class="toc-text">页面长什么样</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#%E4%B8%89%E5%BC%A0%E6%A0%B8%E5%BF%83%E8%A1%A8"><span class="toc-number">5.</span> <span class="toc-text">三张核心表</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#%E7%AC%AC%E4%B8%80%E6%9C%9F%E5%81%9A%E5%AE%8C%E7%9A%84%E6%A0%B7%E5%AD%90"><span class="toc-number">6.</span> <span class="toc-text">第一期做完的样子</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#%E5%A6%82%E6%9E%9C%E9%87%8D%E6%9D%A5%E4%B8%80%E6%AC%A1"><span class="toc-number">7.</span> <span class="toc-text">如果重来一次</span></a></li></ol></div></div><div class="card-widget card-recent-post"><div class="item-headline"><i class="fas fa-history"></i><span>最新文章</span></div><div class="aside-list"><div class="aside-list-item no-cover"><div class="content"><a class="title" href="/2026/11/14/lakes-cloudrun-deploy/" title="湖里 Lakes：搬到微信云托管，部署和踩坑">湖里 Lakes：搬到微信云托管，部署和踩坑</a><time datetime="2026-11-14T13:00:00.000Z" title="发表于 2026-11-14 21:00:00">2026-11-14</time></div></div><div class="aside-list-item no-cover"><div class="content"><a class="title" href="/2026/11/14/study-workbench-service-ai/" title="给复习页接上 SQLite 和 AI 评分：Key 不能进浏览器">给复习页接上 SQLite 和 AI 评分：Key 不能进浏览器</a><time datetime="2026-11-14T13:00:00.000Z" title="发表于 2026-11-14 21:00:00">2026-11-14</time></div></div><div class="aside-list-item no-cover"><div class="content"><a class="title" href="/2026/11/14/study-workbench-frontend/" title="给自己搭了个课程复习平台">给自己搭了个课程复习平台</a><time datetime="2026-11-14T12:00:00.000Z" title="发表于 2026-11-14 20:00:00">2026-11-14</time></div></div><div class="aside-list-item no-cover"><div class="content"><a class="title" href="/2026/11/14/mindmap-editor-tool/" title="161 个测试节点的导图工具：simple-mind-map 加四个插件">161 个测试节点的导图工具：simple-mind-map 加四个插件</a><time datetime="2026-11-14T08:40:00.000Z" title="发表于 2026-11-14 16:40:00">2026-11-14</time></div></div><div class="aside-list-item no-cover"><div class="content"><a class="title" href="/2026/11/04/teci-iteration-workflow/" title="打完 28 轮迭代，我留下的几条工程习惯">打完 28 轮迭代，我留下的几条工程习惯</a><time datetime="2026-11-04T13:30:00.000Z" title="发表于 2026-11-04 21:30:00">2026-11-04</time></div></div></div></div></div></div></main><footer id="footer"><div class="footer-other"><div class="footer-copyright"><span class="copyright">&copy;&nbsp;2026 By aidon</span><span class="framework-info"><span>框架 </span><a target="_blank" rel="noopener" href="https://hexo.io">Hexo 7.3.0</a><span class="footer-separator">|</span><span>主题 </span><a target="_blank" rel="noopener" href="https://github.com/jerryc127/hexo-theme-butterfly">Butterfly 5.6.0</a></span></div></div></footer></div><div id="rightside"><div id="rightside-config-hide"><button id="readmode" type="button" title="阅读模式"><i class="fas fa-book-open"></i></button><button id="darkmode" type="button" title="日间和夜间模式切换"><i class="fas fa-adjust"></i></button><button id="hide-aside-btn" type="button" title="单栏和双栏切换"><i class="fas fa-arrows-alt-h"></i></button></div><div id="rightside-config-show"><button id="rightside-config" type="button" title="设置"><i class="fas fa-cog fa-spin"></i></button><button class="close" id="mobile-toc-button" type="button" title="目录"><i class="fas fa-list-ul"></i></button><button id="go-up" type="button" title="回到顶部"><span class="scroll-percent"></span><i class="fas fa-arrow-up"></i></button></div></div><div><script src="/js/utils.js?v=5.6.0"></script><script src="/js/main.js?v=5.6.0"></script><script src="https://cdn.jsdelivr.net/npm/vanilla-lazyload@19.1.3/dist/lazyload.iife.min.js"></script><div class="js-pjax"><script>(() => {
+  const parseViewBox = viewBox => {
+    if (!viewBox) return null
+    const parts = viewBox.trim().split(/[\s,]+/).map(n => Number(n))
+    if (parts.length !== 4 || parts.some(n => Number.isNaN(n))) return null
+    return parts
+  }
+
+  const getSvgViewBox = svg => {
+    const attr = parseViewBox(svg.getAttribute('viewBox'))
+    if (attr) return attr
+
+    // Fallback: use bbox to build a viewBox
+    try {
+      const bbox = svg.getBBox()
+      if (bbox && bbox.width && bbox.height) return [bbox.x, bbox.y, bbox.width, bbox.height]
+    } catch (e) {
+      // getBBox may fail on some edge cases; ignore
+    }
+
+    const w = Number(svg.getAttribute('width')) || 0
+    const h = Number(svg.getAttribute('height')) || 0
+    if (w > 0 && h > 0) return [0, 0, w, h]
+    return [0, 0, 100, 100]
+  }
+
+  const setSvgViewBox = (svg, vb) => {
+    svg.setAttribute('viewBox', `${vb[0]} ${vb[1]} ${vb[2]} ${vb[3]}`)
+  }
+
+  const clamp = (v, min, max) => Math.max(min, Math.min(max, v))
+
+  const openSvgInNewTab = ({ source, initViewBox }) => {
+    const getClonedSvg = () => {
+      if (typeof source === 'string') {
+        const template = document.createElement('template')
+        template.innerHTML = source.trim()
+        const svg = template.content.querySelector('svg')
+        return svg ? svg.cloneNode(true) : null
+      }
+      if (source && typeof source.cloneNode === 'function') {
+        return source.cloneNode(true)
+      }
+      return null
+    }
+
+    const clone = getClonedSvg()
+    if (!clone) return
+    if (initViewBox && initViewBox.length === 4) {
+      clone.setAttribute('viewBox', initViewBox.join(' '))
+    }
+    if (!clone.getAttribute('xmlns')) clone.setAttribute('xmlns', 'http://www.w3.org/2000/svg')
+    if (!clone.getAttribute('xmlns:xlink') && clone.innerHTML.includes('xlink:')) {
+      clone.setAttribute('xmlns:xlink', 'http://www.w3.org/1999/xlink')
+    }
+    // inject background to match current theme
+    const isDark = document.documentElement.getAttribute('data-theme') === 'dark'
+    const bg = getComputedStyle(document.body).backgroundColor || (isDark ? '#1e1e1e' : '#ffffff')
+    if (!clone.style.background) clone.style.background = bg
+
+    const serializer = new XMLSerializer()
+    const svgSource = serializer.serializeToString(clone)
+    const htmlSource = `<!doctype html><html><head><meta charset="utf-8" />
+      <style>
+        html, body { width: 100%; height: 100%; margin: 0; display: flex; align-items: center; justify-content: center; background: ${bg}; }
+        svg { max-width: 100%; max-height: 100%; height: auto; width: auto; }
+      </style>
+      </head><body>${svgSource}</body></html>`
+    const blob = new Blob([htmlSource], { type: 'text/html;charset=utf-8' })
+    const url = URL.createObjectURL(blob)
+    window.open(url, '_blank', 'noopener')
+
+    setTimeout(() => URL.revokeObjectURL(url), 5000)
+  }
+
+  const attachMermaidViewerButton = wrap => {
+    let btn = wrap.querySelector('.mermaid-open-btn')
+    if (!btn) {
+      btn = document.createElement('button')
+      btn.type = 'button'
+      btn.className = 'mermaid-open-btn'
+      wrap.appendChild(btn)
+    }
+
+    btn.innerHTML = '<i class="fa fa-search fa-fw" aria-hidden="true"></i>'
+
+    if (!btn.__mermaidViewerBound) {
+      btn.addEventListener('click', e => {
+        e.preventDefault()
+        e.stopPropagation()
+        const svg = wrap.__mermaidOriginalSvg || wrap.querySelector('svg')
+        if (!svg) return
+        const initViewBox = wrap.__mermaidInitViewBox
+        openSvgInNewTab({ source: svg, initViewBox })
+      })
+      btn.__mermaidViewerBound = true
+    }
+  }
+
+  // Zoom around a point (px, py) in the SVG viewport (in viewBox coordinates)
+  const zoomAtPoint = (vb, factor, px, py) => {
+    const w = vb[2] * factor
+    const h = vb[3] * factor
+    const nx = px - (px - vb[0]) * factor
+    const ny = py - (py - vb[1]) * factor
+    return [nx, ny, w, h]
+  }
+
+  const initMermaidGestures = wrap => {
+    // Clean up previous event listeners and pending frames
+    if (wrap.__mermaidAbortController) {
+      wrap.__mermaidAbortController.abort()
+      if (wrap.__mermaidRafId) cancelAnimationFrame(wrap.__mermaidRafId)
+    }
+    const ac = new AbortController()
+    wrap.__mermaidAbortController = ac
+    const svg = wrap.querySelector('svg')
+    if (!svg) return
+
+    // Ensure viewBox exists so gestures always work
+    const initVb = getSvgViewBox(svg)
+    wrap.__mermaidInitViewBox = initVb
+    wrap.__mermaidCurViewBox = initVb.slice()
+    setSvgViewBox(svg, initVb)
+    // Disable default gestures to prevent scroll chaining and pinch-zoom penetration in Chrome
+    svg.style.touchAction = 'none'
+
+    // Cache BoundingClientRect, throttled on scroll to reduce reflow
+    let cachedRect = svg.getBoundingClientRect()
+    let rectDirty = false
+    const markRectDirty = () => { rectDirty = true }
+    window.addEventListener('resize', markRectDirty, { signal: ac.signal })
+    window.addEventListener('scroll', markRectDirty, { signal: ac.signal, capture: true })
+    const getRect = () => {
+      if (rectDirty) {
+        cachedRect = svg.getBoundingClientRect()
+        rectDirty = false
+      }
+      return cachedRect
+    }
+
+    // Precompute clamp bounds from initial viewBox
+    const minW = initVb[2] * 0.1
+    const maxW = initVb[2] * 10
+    const minH = initVb[3] * 0.1
+    const maxH = initVb[3] * 10
+    const clampVb = vb => {
+      const out = vb.slice()
+      out[2] = clamp(out[2], minW, maxW)
+      out[3] = clamp(out[3], minH, maxH)
+      return out
+    }
+
+    // Throttle DOM updates using requestAnimationFrame
+    let pendingVb = null
+    let rafId = null
+    const applyVb = () => {
+      if (pendingVb) {
+        wrap.__mermaidCurViewBox = pendingVb
+        setSvgViewBox(svg, pendingVb)
+        pendingVb = null
+      }
+      rafId = null
+      wrap.__mermaidRafId = null
+    }
+    const setCurVb = vb => {
+      pendingVb = clampVb(vb)
+      if (!rafId) {
+        rafId = requestAnimationFrame(applyVb)
+        wrap.__mermaidRafId = rafId
+      }
+    }
+
+    const state = {
+      pointers: new Map(),
+      startVb: null,
+      startDist: 0,
+      lastPointerX: 0,
+      lastPointerY: 0
+    }
+
+    const onPointerDown = e => {
+      if (e.pointerType === 'mouse' && e.button !== 0) return
+      svg.setPointerCapture(e.pointerId)
+      const curVb = wrap.__mermaidCurViewBox
+      state.pointers.set(e.pointerId, { x: e.clientX, y: e.clientY })
+      if (state.pointers.size === 1) {
+        state.startVb = curVb.slice()
+        state.lastPointerX = e.clientX
+        state.lastPointerY = e.clientY
+      } else if (state.pointers.size === 2) {
+        const pts = [...state.pointers.values()]
+        const dx = pts[0].x - pts[1].x
+        const dy = pts[0].y - pts[1].y
+        state.startDist = Math.hypot(dx, dy)
+        state.startVb = curVb.slice()
+      }
+    }
+
+    const onPointerMove = e => {
+      if (!state.pointers.has(e.pointerId)) return
+      state.pointers.set(e.pointerId, { x: e.clientX, y: e.clientY })
+      const curVb = wrap.__mermaidCurViewBox
+      const rect = getRect()
+      if (state.pointers.size === 1 && state.startVb) {
+        const p = state.pointers.values().next().value
+        const dxClient = p.x - state.lastPointerX
+        const dyClient = p.y - state.lastPointerY
+        state.lastPointerX = p.x
+        state.lastPointerY = p.y
+        const dx = dxClient * (curVb[2] / rect.width)
+        const dy = dyClient * (curVb[3] / rect.height)
+        setCurVb([curVb[0] - dx, curVb[1] - dy, curVb[2], curVb[3]])
+        return
+      }
+      if (state.pointers.size === 2 && state.startVb && state.startDist > 0) {
+        const pts = [...state.pointers.values()]
+        const dx = pts[0].x - pts[1].x
+        const dy = pts[0].y - pts[1].y
+        const dist = Math.hypot(dx, dy)
+        if (!dist) return
+        const factor = state.startDist / dist
+        const cx = (pts[0].x + pts[1].x) / 2
+        const cy = (pts[0].y + pts[1].y) / 2
+        const px = curVb[0] + (cx - rect.left) * (curVb[2] / rect.width)
+        const py = curVb[1] + (cy - rect.top) * (curVb[3] / rect.height)
+        setCurVb(zoomAtPoint(state.startVb, factor, px, py))
+      }
+    }
+
+    const onPointerUpOrCancel = e => {
+      // Release PointerCapture to avoid event capture anomalies
+      if (svg.hasPointerCapture && svg.hasPointerCapture(e.pointerId)) {
+        svg.releasePointerCapture(e.pointerId)
+      }
+      state.pointers.delete(e.pointerId)
+      if (state.pointers.size === 0) {
+        state.startVb = null
+        state.startDist = 0
+      } else if (state.pointers.size === 1) {
+        const p = state.pointers.values().next().value
+        state.lastPointerX = p.x
+        state.lastPointerY = p.y
+      }
+    }
+
+    const onWheel = e => {
+      // Prevent event bubbling from triggering external scroll
+      e.preventDefault()
+      e.stopPropagation()
+      // Normalize deltaY across deltaMode (Chrome uses pixels, Safari uses lines)
+      let delta = e.deltaY
+      if (e.deltaMode === 1) delta *= 16
+      else if (e.deltaMode === 2) delta *= 400
+
+      // Continuous zoom factor: smoother than fixed 1.1/0.9 steps
+      const zoomFactor = Math.pow(1.001, delta)
+
+      const curVb = wrap.__mermaidCurViewBox
+      const rect = getRect()
+      const px = curVb[0] + (e.clientX - rect.left) * (curVb[2] / rect.width)
+      const py = curVb[1] + (e.clientY - rect.top) * (curVb[3] / rect.height)
+      setCurVb(zoomAtPoint(curVb, zoomFactor, px, py))
+    }
+
+    const onDblClick = () => {
+      const init = wrap.__mermaidInitViewBox
+      if (init) setCurVb(init)
+    }
+
+    svg.addEventListener('pointerdown', onPointerDown, { signal: ac.signal })
+    svg.addEventListener('pointermove', onPointerMove, { signal: ac.signal })
+    svg.addEventListener('pointerup', onPointerUpOrCancel, { signal: ac.signal })
+    svg.addEventListener('pointercancel', onPointerUpOrCancel, { signal: ac.signal })
+    svg.addEventListener('wheel', onWheel, { passive: false, signal: ac.signal })
+    svg.addEventListener('dblclick', onDblClick, { signal: ac.signal })
+  }
+
+  const runMermaid = ele => {
+    window.loadMermaid = true
+    const theme = document.documentElement.getAttribute('data-theme') === 'dark' ? 'dark' : 'default'
+    ele.forEach((item, index) => {
+      const mermaidSrc = item.firstElementChild
+      // Clean up event listeners before removing old SVG
+      if (item.__mermaidAbortController) {
+        item.__mermaidAbortController.abort()
+      }
+      const oldSvg = item.querySelector('svg')
+      if (oldSvg) oldSvg.remove()
+      let config = {}
+      try {
+        config = mermaidSrc.dataset.config ? JSON.parse(mermaidSrc.dataset.config) : {}
+      } catch (e) {
+        console.warn('[mermaid] failed to parse dataset.config:', e)
+      }
+      if (!config.theme) {
+        config.theme = theme
+      }
+      const mermaidThemeConfig = `%%{init: ${JSON.stringify(config)}}%%\n`
+      const mermaidID = `mermaid-${index}`
+      const mermaidDefinition = mermaidThemeConfig + mermaidSrc.textContent
+
+      const renderMermaid = svg => {
+        mermaidSrc.insertAdjacentHTML('afterend', svg)
+        if (true) initMermaidGestures(item)
+        item.__mermaidOriginalSvg = svg
+        if (true) attachMermaidViewerButton(item)
+      }
+
+      const handleError = err => {
+        console.error(`[mermaid] render failed for block #${index}:`, err)
+        const errorEl = document.createElement('div')
+        errorEl.className = 'mermaid-error'
+        errorEl.textContent = `Mermaid render error: ${err.message || err}`
+        mermaidSrc.insertAdjacentElement('afterend', errorEl)
+      }
+
+      try {
+        const renderFn = mermaid.render(mermaidID, mermaidDefinition)
+        // mermaid v9 and v10 compatibility
+        if (typeof renderFn === 'string') {
+          renderMermaid(renderFn)
+        } else {
+          renderFn.then(({ svg }) => renderMermaid(svg)).catch(handleError)
+        }
+      } catch (err) {
+        handleError(err)
+      }
+    })
+  }
+
+  const codeToMermaid = $article => {
+    const codeMermaidEle = $article.querySelectorAll('pre > code.mermaid')
+    if (codeMermaidEle.length === 0) return
+
+    codeMermaidEle.forEach(ele => {
+      const preEle = document.createElement('pre')
+      preEle.className = 'mermaid-src'
+      preEle.hidden = true
+      preEle.textContent = ele.textContent
+      const newEle = document.createElement('div')
+      newEle.className = 'mermaid-wrap'
+      newEle.appendChild(preEle)
+      ele.parentNode.replaceWith(newEle)
+    })
+  }
+
+  const loadMermaid = () => {
+    const $article = document.getElementById('article-container')
+    if (!$article) return
+
+    if (false) codeToMermaid($article)
+    const $mermaid = $article.querySelectorAll('.mermaid-wrap')
+    if ($mermaid.length === 0) return
+
+    const runMermaidFn = () => runMermaid($mermaid)
+    btf.addGlobalFn('themeChange', runMermaidFn, 'mermaid')
+    window.loadMermaid ? runMermaidFn() : btf.getScript('https://cdn.jsdelivr.net/npm/mermaid@11.16.0/dist/mermaid.min.js').then(runMermaidFn)
+  }
+
+  btf.addGlobalFn('encrypt', loadMermaid, 'mermaid')
+  window.pjax ? loadMermaid() : document.addEventListener('DOMContentLoaded', loadMermaid)
+})()</script></div><script async data-pjax src="//busuanzi.ibruce.info/busuanzi/2.3/busuanzi.pure.mini.js"></script></div></body></html>

@@ -1,0 +1,730 @@
+<!DOCTYPE html><html lang="zh-CN" data-theme="light"><head><meta charset="UTF-8"><meta http-equiv="X-UA-Compatible" content="IE=edge"><meta name="viewport" content="width=device-width, initial-scale=1.0,viewport-fit=cover"><title>湖里 Lakes：在开源点餐系统上改了大半年，哪些留哪些重写 | aidon's blog</title><meta name="author" content="aidon"><meta name="copyright" content="aidon"><meta name="format-detection" content="telephone=no"><meta name="theme-color" content="#ffffff"><meta name="description" content="拿到开源点餐项目之后，我先把它跑起来画了一张模块图，再决定哪些代码留着、哪些推倒重写。这篇记录四个工程怎么分工，以及几张核心表的关系。">
+<meta property="og:type" content="article">
+<meta property="og:title" content="湖里 Lakes：在开源点餐系统上改了大半年，哪些留哪些重写">
+<meta property="og:url" content="https://aidon-chen.github.io/2026/09/19/lakes-architecture/index.html">
+<meta property="og:site_name" content="aidon&#39;s blog">
+<meta property="og:description" content="拿到开源点餐项目之后，我先把它跑起来画了一张模块图，再决定哪些代码留着、哪些推倒重写。这篇记录四个工程怎么分工，以及几张核心表的关系。">
+<meta property="og:locale" content="zh_CN">
+<meta property="og:image" content="https://aidon-chen.github.io/img/avatar.png">
+<meta property="article:published_time" content="2026-09-19T13:00:00.000Z">
+<meta property="article:modified_time" content="2026-11-14T07:44:10.849Z">
+<meta property="article:author" content="aidon">
+<meta property="article:tag" content="Spring Boot">
+<meta property="article:tag" content="Vue">
+<meta property="article:tag" content="架构设计">
+<meta name="twitter:card" content="summary">
+<meta name="twitter:image" content="https://aidon-chen.github.io/img/avatar.png"><script type="application/ld+json">{
+  "@context": "https://schema.org",
+  "@type": "BlogPosting",
+  "headline": "湖里 Lakes：在开源点餐系统上改了大半年，哪些留哪些重写",
+  "url": "https://aidon-chen.github.io/2026/09/19/lakes-architecture/",
+  "image": "https://aidon-chen.github.io/img/avatar.png",
+  "datePublished": "2026-09-19T13:00:00.000Z",
+  "dateModified": "2026-11-14T07:44:10.849Z",
+  "author": [
+    {
+      "@type": "Person",
+      "name": "aidon",
+      "url": "https://aidon-chen.github.io"
+    }
+  ]
+}</script><link rel="shortcut icon" href="/img/favicon.ico"><link rel="canonical" href="https://aidon-chen.github.io/2026/09/19/lakes-architecture/index.html"><link rel="preconnect" href="//cdn.jsdelivr.net"/><link rel="preconnect" href="//busuanzi.ibruce.info"/><link rel="stylesheet" href="/css/index.css?v=5.6.0"><link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@fortawesome/fontawesome-free@7.3.1/css/all.min.css"><script>
+    (() => {
+      
+    const saveToLocal = {
+      set: (key, value, ttl) => {
+        const data = { value }
+
+        if (ttl != null) {
+          data.expiry = Date.now() + ttl * 86400000
+        }
+
+        localStorage.setItem(key, JSON.stringify(data))
+      },
+      get: key => {
+        const itemStr = localStorage.getItem(key)
+        if (!itemStr) return
+
+        try {
+          const data = JSON.parse(itemStr)
+
+          if (data.expiry && Date.now() > data.expiry) {
+            localStorage.removeItem(key)
+            return
+          }
+
+          return data.value
+        } catch {
+          localStorage.removeItem(key)
+        }
+      }
+    }
+
+    const scriptCache = new Map()
+    const cssCache = new Map()
+    window.btf = {
+      saveToLocal,
+      getScript: (url, attr = {}) => {
+        if (scriptCache.has(url)) {
+          return scriptCache.get(url)
+        }
+
+        const promise = new Promise((resolve, reject) => {
+          const script = document.createElement('script')
+
+          script.src = url
+          script.async = true
+
+          for (const key in attr) {
+            script.setAttribute(key, attr[key])
+          }
+
+          script.onload = resolve
+          script.onerror = reject
+
+          document.head.appendChild(script)
+        })
+
+        scriptCache.set(url, promise)
+
+        return promise
+      },
+      getCSS: (url, id) => {
+        if (cssCache.has(url)) {
+          return cssCache.get(url)
+        }
+
+        const promise = new Promise((resolve, reject) => {
+          const link = document.createElement('link')
+
+          link.rel = 'stylesheet'
+          link.href = url
+
+          if (id) {
+            link.id = id
+          }
+
+          link.onload = resolve
+          link.onerror = reject
+
+          document.head.appendChild(link)
+        })
+
+        cssCache.set(url, promise)
+
+        return promise
+      },
+      addGlobalFn: (key, fn, name = false, parent = window) => {
+        if (!false && key.startsWith('pjax')) return
+        const globalFn = parent.globalFn || {}
+        globalFn[key] = globalFn[key] || {}
+        globalFn[key][name || Object.keys(globalFn[key]).length] = fn
+        parent.globalFn = globalFn
+      }
+    }
+  
+      
+      const metaThemeColor = document.querySelector('meta[name="theme-color"]')
+      const activateDarkMode = () => {
+        document.documentElement.dataset.theme = 'dark'
+        if (metaThemeColor !== null) {
+          metaThemeColor.setAttribute('content', '#0d0d0d')
+        }
+      }
+      const activateLightMode = () => {
+        document.documentElement.dataset.theme = 'light'
+        if (metaThemeColor !== null) {
+          metaThemeColor.setAttribute('content', '#ffffff')
+        }
+      }
+
+      btf.activateDarkMode = activateDarkMode
+      btf.activateLightMode = activateLightMode
+
+      const theme = saveToLocal.get('theme')
+    
+          theme === 'dark' ? activateDarkMode() : theme === 'light' ? activateLightMode() : null
+        
+      
+      const asideStatus = saveToLocal.get('aside-status')
+      if (asideStatus !== undefined) {
+        document.documentElement.classList.toggle('hide-aside', asideStatus === 'hide')
+      }
+    
+      
+    const detectApple = () => {
+      if (/iPad|iPhone|iPod|Macintosh/.test(navigator.userAgent)) {
+        document.documentElement.classList.add('apple')
+      }
+    }
+    detectApple()
+  
+    })()
+  </script><script>const GLOBAL_CONFIG = {
+  root: '/',
+  algolia: undefined,
+  localSearch: undefined,
+  translate: undefined,
+  highlight: {"plugin":"highlight.js","highlightCopy":true,"highlightLang":true,"highlightHeightLimit":false,"highlightFullpage":false,"highlightMacStyle":false},
+  copy: {
+    success: '复制成功',
+    error: '复制失败',
+    noSupport: '浏览器不支持'
+  },
+  relativeDate: {
+    homepage: false,
+    post: false
+  },
+  runtime: '',
+  dateSuffix: {
+    just: '刚刚',
+    min: '分钟前',
+    hour: '小时前',
+    day: '天前',
+    month: '个月前'
+  },
+  copyright: undefined,
+  lightbox: 'null',
+  Snackbar: undefined,
+  infinitegrid: {
+    js: 'https://cdn.jsdelivr.net/npm/@egjs/infinitegrid@4.13.0/dist/infinitegrid.min.js',
+    buttonText: '加载更多'
+  },
+  isPhotoFigcaption: false,
+  islazyloadPlugin: true,
+  isAnchor: false,
+  percent: {
+    toc: true,
+    rightside: false,
+  },
+  autoDarkmode: false
+}</script><script id="config-diff">var GLOBAL_CONFIG_SITE = {
+  title: '湖里 Lakes：在开源点餐系统上改了大半年，哪些留哪些重写',
+  isHighlightShrink: false,
+  isToc: true,
+  pageType: 'post'
+}</script><meta name="generator" content="Hexo 7.3.0"></head><body><div id="sidebar"><div id="menu-mask"></div><div id="sidebar-menus"><div class="avatar-img text-center"><img src="data:image/gif;base64,R0lGODlhAQABAIAAAAAAAP///yH5BAEAAAAALAAAAAABAAEAAAIBRAA7" data-lazy-src="/img/avatar.png" onerror="this.onerror=null;this.src='/img/friend_404.gif'" alt="avatar"/></div><div class="site-data text-center"><a href="/archives/"><div class="headline">文章</div><div class="length-num">24</div></a><a href="/tags/"><div class="headline">标签</div><div class="length-num">70</div></a><a href="/categories/"><div class="headline">分类</div><div class="length-num">16</div></a></div><div class="menus_items"><div class="menus_item"><a class="site-page" href="/"><i class="fa-fw fas fa-home"></i><span> 首页</span></a></div><div class="menus_item"><a class="site-page" href="/archives/"><i class="fa-fw fas fa-archive"></i><span> 归档</span></a></div><div class="menus_item"><a class="site-page" href="/categories/"><i class="fa-fw fas fa-folder-open"></i><span> 分类</span></a></div><div class="menus_item"><a class="site-page" href="/tags/"><i class="fa-fw fas fa-tags"></i><span> 标签</span></a></div><div class="menus_item"><a class="site-page" href="/gallery/"><i class="fa-fw fas fa-images"></i><span> 相册</span></a></div><div class="menus_item"><a class="site-page" href="/about/"><i class="fa-fw fas fa-heart"></i><span> 关于</span></a></div></div></div></div><div class="post" id="body-wrap"><header class="post-bg" id="page-header"><nav id="nav"><span id="blog-info"><a class="nav-site-title" href="/"><span class="site-name">aidon's blog</span></a><a class="nav-page-title" href="/"><span class="site-name">湖里 Lakes：在开源点餐系统上改了大半年，哪些留哪些重写</span><span class="site-name"><i class="fa-solid fa-circle-arrow-left"></i><span>  返回首页</span></span></a></span><div id="menus"><div id="search-button"><span class="site-page social-icon search"><i class="fas fa-search fa-fw"></i><span> 搜索</span></span></div><div class="menus_items"><div class="menus_item"><a class="site-page" href="/"><i class="fa-fw fas fa-home"></i><span> 首页</span></a></div><div class="menus_item"><a class="site-page" href="/archives/"><i class="fa-fw fas fa-archive"></i><span> 归档</span></a></div><div class="menus_item"><a class="site-page" href="/categories/"><i class="fa-fw fas fa-folder-open"></i><span> 分类</span></a></div><div class="menus_item"><a class="site-page" href="/tags/"><i class="fa-fw fas fa-tags"></i><span> 标签</span></a></div><div class="menus_item"><a class="site-page" href="/gallery/"><i class="fa-fw fas fa-images"></i><span> 相册</span></a></div><div class="menus_item"><a class="site-page" href="/about/"><i class="fa-fw fas fa-heart"></i><span> 关于</span></a></div></div><div id="toggle-menu"><span class="site-page"><i class="fas fa-bars fa-fw"></i></span></div></div></nav><div id="post-info"><h1 class="post-title">湖里 Lakes：在开源点餐系统上改了大半年，哪些留哪些重写</h1><div id="post-meta"><div class="meta-firstline"><span class="post-meta-date"><i class="far fa-calendar-alt fa-fw post-meta-icon"></i><span class="post-meta-label">发表于</span><time class="post-meta-date-created" datetime="2026-09-19T13:00:00.000Z" title="发表于 2026-09-19 21:00:00">2026-09-19</time><span class="post-meta-separator">|</span><i class="fas fa-history fa-fw post-meta-icon"></i><span class="post-meta-label">更新于</span><time class="post-meta-date-updated" datetime="2026-11-14T07:44:10.849Z" title="更新于 2026-11-14 15:44:10">2026-11-14</time></span><span class="post-meta-categories"><span class="post-meta-separator">|</span><i class="fas fa-inbox fa-fw post-meta-icon"></i><a class="post-meta-categories" href="/categories/%E5%BE%AE%E4%BF%A1%E5%B0%8F%E7%A8%8B%E5%BA%8F/">微信小程序</a><i class="fas fa-angle-right post-meta-separator"></i><i class="fas fa-inbox fa-fw post-meta-icon"></i><a class="post-meta-categories" href="/categories/%E5%BE%AE%E4%BF%A1%E5%B0%8F%E7%A8%8B%E5%BA%8F/%E7%82%B9%E9%A4%90%E7%B3%BB%E7%BB%9F/">点餐系统</a></span></div><div class="meta-secondline"><span class="post-meta-separator">|</span><span class="post-meta-wordcount"><i class="far fa-file-word fa-fw post-meta-icon"></i><span class="post-meta-label">总字数:</span><span class="word-count">2.7k</span><span class="post-meta-separator">|</span><i class="far fa-clock fa-fw post-meta-icon"></i><span class="post-meta-label">阅读时长:</span><span>8分钟</span></span><span class="post-meta-separator">|</span><span class="post-meta-pv-cv" id="" data-flag-title=""><i class="far fa-eye fa-fw post-meta-icon"></i><span class="post-meta-label">浏览量:</span><span id="busuanzi_value_page_pv"><i class="fa-solid fa-spinner fa-spin"></i></span></span></div></div></div></header><main class="layout" id="content-inner"><div id="post"><article class="container post-content" id="article-container"><p>这套系统改了大半年。说是「改」，其实前半段时间都在读别人的代码。</p>
+<p>后端用的是开源项目「暹罗点餐」，Apache License 2.0，商品、规格、购物车、订单这些骨架都有。拿到手第一天我没急着改业务，先把它跑起来：装 JDK 8、MySQL，改数据库连接，起后端，再起管理端。跑通之后做了一件看起来很笨的事——拿张纸，把它的模块和菜单画出来，用三种颜色标：能直接用、要改、完全没有。</p>
+<p>这张图后来救了我很多次。每次想动某个模块，先看一眼它属于哪一色，心里有数。</p>
+<h2 id="先跑起来，再决定改哪"><a href="#先跑起来，再决定改哪" class="headerlink" title="先跑起来，再决定改哪"></a>先跑起来，再决定改哪</h2><p>开源项目最怕的是「看起来什么都有」。菜单一点，商品、订单、会员、营销、财务报表全在，很容易产生一种「稍微配置一下就能用」的错觉。真跑起来才发现，它的默认场景是连锁品牌加同城配送，和一家单店精酿餐吧差得很远。</p>
+<p>我当时的判断标准很简单：</p>
+<table>
+<thead>
+<tr>
+<th>模块</th>
+<th>判断</th>
+<th>处理</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>商品、分类、规格、菜单</td>
+<td>通用骨架，逻辑完整</td>
+<td>留，改字段和展示</td>
+</tr>
+<tr>
+<td>购物车、订单主流程</td>
+<td>通用骨架，状态机够用</td>
+<td>留，补堂食和自提场景</td>
+</tr>
+<tr>
+<td>门店、商家账号</td>
+<td>多店模型，单店也能用</td>
+<td>留，按单店收敛</td>
+</tr>
+<tr>
+<td>上传、设置、字典</td>
+<td>基础设施</td>
+<td>留</td>
+</tr>
+<tr>
+<td>会员中心、等级、积分</td>
+<td>原版偏管理端，顾客端很薄</td>
+<td>重写顾客端，补等级和流水</td>
+</tr>
+<tr>
+<td>优惠券、满减</td>
+<td>有券，但活动规则和核销链路不完整</td>
+<td>改，统一走券</td>
+</tr>
+<tr>
+<td>到店自提、核销、存酒</td>
+<td>原版没有</td>
+<td>新写</td>
+</tr>
+<tr>
+<td>收银台</td>
+<td>原版没有独立收银端</td>
+<td>新写</td>
+</tr>
+<tr>
+<td>外卖、配送、骑手、评价</td>
+<td>这家店用不上</td>
+<td>隐藏，不删代码</td>
+</tr>
+</tbody></table>
+<p>真正花时间的不是「写新功能」，是判断哪些旧代码可以不动。开源项目的商品规格有两层，菜单和商品是多对多，订单拆主表和明细表，这些设计比我自己从零想一遍要稳。我要做的是顺着它的模型加东西，而不是另起一套。</p>
+<h2 id="留下的部分"><a href="#留下的部分" class="headerlink" title="留下的部分"></a>留下的部分</h2><p>留下来的代码有一个共同点：它们描述的是餐饮的通用结构，不依赖某家店怎么经营。</p>
+<ul>
+<li>商品有分类、规格、规格选项，能表达「大杯&#x2F;小杯」「加冰&#x2F;常温」；</li>
+<li>菜单和商品是多对多，同一道菜可以挂在午餐和晚餐两个菜单里；</li>
+<li>购物车按会员和门店存，下单时转成订单主表和明细表；</li>
+<li>订单有状态、支付方式、退款记录，主流程能跑；</li>
+<li>门店和商家账号绑定，后端用登录会话里的 <code>shopId</code> 做数据隔离。</li>
+</ul>
+<p>这些表结构我基本没动。动得最多的是「哪些字段在顾客端展示」「哪些菜单要隐藏」。比如外卖、配送、骑手、评价这几个一级菜单，店里用不上，直接在前端路由里隐藏，后端接口留着不调。删代码看起来更干净，但以后想加回来成本更高，隐藏是更划算的选择。</p>
+<h2 id="重写的部分"><a href="#重写的部分" class="headerlink" title="重写的部分"></a>重写的部分</h2><p>重写的判断标准不是「代码写得烂」，是「它的假设和这家店对不上」。</p>
+<h3 id="会员中心"><a href="#会员中心" class="headerlink" title="会员中心"></a>会员中心</h3><p>原版有会员表，也有管理端的会员列表，但顾客端能看的东西很少。店里想要的是：客人打开「我的」，能看到等级、成长值、积分、余额、优惠券，还有存酒。</p>
+<p>这部分在顾客端基本重写。等级和成长值是新加的，积分和余额各自有流水，优惠券单独一个入口。管理端对应补了会员详情，订单、优惠券、存酒分 Tab 展示。</p>
+<p><img src="data:image/gif;base64,R0lGODlhAQABAIAAAAAAAP///yH5BAEAAAAALAAAAAABAAEAAAIBRAA7" data-lazy-src="/img/miniprogram/lakes-admin-member-detail.png" alt="管理端的会员详情，订单、优惠券、存酒分 Tab"></p>
+<h3 id="优惠券和满减"><a href="#优惠券和满减" class="headerlink" title="优惠券和满减"></a>优惠券和满减</h3><p>原版有优惠券，但活动配置和核销链路比较粗。我补了券模板、领取、券包、下单选券、核销状态这些环节。</p>
+<p>中间走过一段弯路：商城那边同时存在「自动满减规则」和「满减券」，两套都能减钱。更麻烦的是自动满减的开关在前端三处计算里都没判断，管理端关了照样减。后来干脆把商城的自动满减下线，满减统一用券表达。这个决定单独写了一份 ADR，后面讲。</p>
+<h3 id="到店自提和核销"><a href="#到店自提和核销" class="headerlink" title="到店自提和核销"></a>到店自提和核销</h3><p>原版没有自提。新写的部分包括：商城里标记可自提的商品、下单生成自提码、收银端核销页面、核销记录。自提码第一版是顺序编号，后来发现可枚举，这是后话，测试那篇会提到。</p>
+<h3 id="收银台"><a href="#收银台" class="headerlink" title="收银台"></a>收银台</h3><p>原版没有独立的收银端。新写的 <code>cashier-web</code> 是一个 Vue 3 应用，负责开台、点单、结账、退款、打印、核销。它和管理端不是同一套代码，后面单独讲为什么。</p>
+<h3 id="扫码点餐链路"><a href="#扫码点餐链路" class="headerlink" title="扫码点餐链路"></a>扫码点餐链路</h3><p>桌台码里带桌号和区域，扫码进来先解析参数，写进 <code>globalData.dineInfo</code>，再进点餐页。堂食点餐的入口有三个：桌台二维码直达、首页点餐卡、点餐页右上角的扫码胶囊。三条路最后都汇到同一个上下文对象，避免每个页面各自解析一遍。</p>
+<p><img src="data:image/gif;base64,R0lGODlhAQABAIAAAAAAAP///yH5BAEAAAAALAAAAAABAAEAAAIBRAA7" data-lazy-src="/img/miniprogram/lakes-dine-flow.png" alt="堂食点餐链路，三条扫码入口最后都写入 globalData.dineInfo"></p>
+<h2 id="四个工程怎么连"><a href="#四个工程怎么连" class="headerlink" title="四个工程怎么连"></a>四个工程怎么连</h2><p>系统拆成四个工程，各自负责一件事：</p>
+<table>
+<thead>
+<tr>
+<th>工程</th>
+<th>技术</th>
+<th>本地端口</th>
+<th>职责</th>
+</tr>
+</thead>
+<tbody><tr>
+<td><code>siam-server</code></td>
+<td>Spring Boot 2.3 + MyBatis-Plus + MySQL</td>
+<td>9411</td>
+<td>全部接口、支付、订单、会员</td>
+</tr>
+<tr>
+<td>管理端 <code>vue-siam-shop</code></td>
+<td>Vue 2 + Element UI + ECharts</td>
+<td>5271</td>
+<td>商品、订单、会员、营销、报表</td>
+</tr>
+<tr>
+<td>收银台 <code>cashier-web</code></td>
+<td>Vue 3 + Vite + Pinia + Tailwind</td>
+<td>5270</td>
+<td>开台、点单、结账、打印、核销</td>
+</tr>
+<tr>
+<td>顾客端 <code>customer-cli</code></td>
+<td>uni-app，编译到微信小程序</td>
+<td>8010（H5 预览）</td>
+<td>扫码点餐、商城、会员、订单</td>
+</tr>
+</tbody></table>
+<p>四者之间没有花哨的通信，都是 HTTP + JSON。后端 context-path 是 <code>/siam-server</code>，本地请求要写成 <code>http://localhost:9411/siam-server/rest/...</code>，登录后令牌放在 <code>Authorization</code> 头里。</p>
+<div class="mermaid-wrap"><pre class="mermaid-src" data-config="{}" hidden>
+    flowchart LR
+  MP[&quot;顾客端小程序&quot;] --&gt;|&quot;HTTP JSON&quot;| API[&quot;Spring Boot 后端&quot;]
+  WEB[&quot;管理端 Vue2 + Element&quot;] --&gt;|&quot;HTTP JSON&quot;| API
+  POS[&quot;收银台 Vue3 + Vite&quot;] --&gt;|&quot;HTTP JSON&quot;| API
+  API --&gt; DB[(&quot;MySQL&quot;)]
+  API --&gt; PRT[&quot;小票打印机&quot;]
+  </pre></div>
+
+<p>有一个约束值得记下来：业务接口统一用 POST + JSON body。这个项目里 GET 请求带 query 参数会被全局异常处理器吞成「系统异常，请稍后重试」，响应体看不出真正原因，只能去翻后端日志。刚开始我不信，试了两次才老实。</p>
+<h2 id="收银端为什么单独做一个-Vue-应用"><a href="#收银端为什么单独做一个-Vue-应用" class="headerlink" title="收银端为什么单独做一个 Vue 应用"></a>收银端为什么单独做一个 Vue 应用</h2><p>最直接的原因是设备。收银员用的是 Pad 或者店里的旧笔记本，横屏，屏幕大，要在一屏里塞下桌台、订单、金额、优惠、支付方式。小程序的交互模型是为手机竖屏设计的，放到 Pad 上很别扭。</p>
+<p>第二个原因是外设。收银台要接小票打印机，后面还想接标签打印机和扫码枪。浏览器里做这些事更直接，小程序要走蓝牙或云打印，链路更长。</p>
+<p>第三个原因是更新节奏。顾客端要走微信小程序审核，收银端是店里内部用的 Web 应用，改完 build 一下就能换。把两者绑在一起，改一个收银按钮也要等审核，不划算。</p>
+<p>代价是多维护一个工程。收银端现在有三十多个 Vue 文件，路由、状态、接口封装都要自己写。但它的边界很清楚：只服务店里，不面向顾客，出了问题影响范围可控。</p>
+<h2 id="库表大概长这样"><a href="#库表大概长这样" class="headerlink" title="库表大概长这样"></a>库表大概长这样</h2><p>表不少，真正核心的是这些：</p>
+<div class="mermaid-wrap"><pre class="mermaid-src" data-config="{}" hidden>
+    erDiagram
+  tb_shop ||--o{ tb_merchant : &quot;拥有&quot;
+  tb_shop ||--o{ tb_menu : &quot;配置&quot;
+  tb_menu ||--o{ tb_menu_goods_relation : &quot;包含&quot;
+  tb_goods ||--o{ tb_menu_goods_relation : &quot;被挂到&quot;
+  tb_goods ||--o{ tb_goods_specification : &quot;有规格&quot;
+  tb_goods_specification ||--o{ tb_goods_specification_option : &quot;有选项&quot;
+  tb_member ||--o{ tb_shopping_cart : &quot;加购&quot;
+  tb_member ||--o{ tb_order : &quot;下单&quot;
+  tb_order ||--o{ tb_order_detail : &quot;包含&quot;
+  tb_goods ||--o{ tb_order_detail : &quot;对应&quot;
+  tb_member ||--o{ tb_coupons_member_relation : &quot;领券&quot;
+  tb_coupons ||--o{ tb_coupons_member_relation : &quot;被领取&quot;
+  tb_shop ||--o{ tb_dining_table : &quot;有桌台&quot;
+  tb_member ||--o{ tb_wine_storage : &quot;存酒&quot;
+  </pre></div>
+
+<p>拆开看就三组：</p>
+<ul>
+<li>卖什么：<code>tb_goods</code> 是商品，<code>tb_goods_specification</code> 和 <code>tb_goods_specification_option</code> 管规格，<code>tb_menu</code> 把商品组织成菜单；</li>
+<li>怎么卖：<code>tb_shopping_cart</code> 是加购，<code>tb_order</code> 和 <code>tb_order_detail</code> 是订单主表和明细；</li>
+<li>卖给谁：<code>tb_member</code> 是会员，<code>tb_coupons</code> 和关系表管券，<code>tb_wine_storage</code> 管存酒。</li>
+</ul>
+<p>门店和商家账号是数据隔离的边界。后端所有商家接口都用登录会话里的 <code>shopId</code> 过滤，前端传什么都不作数。这个设计省了很多「忘记加门店条件」的 bug。</p>
+<h2 id="决策留痕：我为什么开始写-ADR"><a href="#决策留痕：我为什么开始写-ADR" class="headerlink" title="决策留痕：我为什么开始写 ADR"></a>决策留痕：我为什么开始写 ADR</h2><p>改别人代码最容易出现的问题，是同一个词在不同文档里指不同的东西。</p>
+<p>这个项目里最典型的是「商家端」。有一份文档说 <code>vue-siam-shop</code> 是商家端，另一份说它是管理端；收银台有时候叫收银端，有时候叫商家端。名字一乱，需求编号 <code>M-</code> 和 <code>A-</code> 就不知道该归谁，验收清单也没法和覆盖报告对上。</p>
+<p>为这事我写了第一份 ADR，把三端和工程锁死：<code>vue-siam-shop</code> 是管理端，承载 <code>A-</code> 编号；收银台是商家端的作业界面，承载 <code>M-</code> 和 <code>P-</code>；老的 <code>vue-siam-admin</code> 不再作为运行端，只留作参考。被否决的方案也写进去了，比如「按工程名重新命名」看起来最干净，但会破坏构建脚本和部署路径，收益不抵风险。</p>
+<p>第二份 ADR 是商城满减下线。两套优惠机制并行，开关还关不掉，这种情况下不写下来，过两个月一定有人问「为什么这里不能配满减」。ADR 里把假开关的代码位置、双重优惠的风险、历史订单字段为什么保留都写清楚了。</p>
+<p>ADR 不是给领导看的文档。它是给三个月后的自己看的：当时为什么这么选，试过哪些不行的路，什么情况下应该重新评审。没有它，很多决定会变成「代码里就是这么写的」，没人知道能不能改。</p>
+<h2 id="收个尾"><a href="#收个尾" class="headerlink" title="收个尾"></a>收个尾</h2><p>在开源项目上改，最重要的不是改得多，是知道自己在改什么。留下的部分要有理由，重写的部分更要有理由。四个工程的分工、几张核心表的关系、两个 ADR，基本就是这套系统的骨架。</p>
+<p>下一篇写接口文档。后端有一百多个 Controller，手写文档一定会过期，我最后让脚本去扫源码。</p>
+</article><div class="post-copyright"><div class="post-copyright__author"><span class="post-copyright-meta"><i class="fas fa-circle-user fa-fw"></i>文章作者: </span><span class="post-copyright-info"><a href="https://aidon-chen.github.io">aidon</a></span></div><div class="post-copyright__type"><span class="post-copyright-meta"><i class="fas fa-square-arrow-up-right fa-fw"></i>文章链接: </span><span class="post-copyright-info"><a href="https://aidon-chen.github.io/2026/09/19/lakes-architecture/">https://aidon-chen.github.io/2026/09/19/lakes-architecture/</a></span></div><div class="post-copyright__notice"><span class="post-copyright-meta"><i class="fas fa-circle-exclamation fa-fw"></i>版权声明: </span><span class="post-copyright-info">本博客所有文章除特别声明外，均采用 <a href="https://creativecommons.org/licenses/by-nc-sa/4.0/" target="_blank">CC BY-NC-SA 4.0</a> 许可协议。转载请注明来源 <a href="https://aidon-chen.github.io" target="_blank">aidon's blog</a>！</span></div></div><div class="tag_share"><div class="post-meta__tag-list"><a class="post-meta__tags" href="/tags/Spring-Boot/">Spring Boot</a><a class="post-meta__tags" href="/tags/Vue/">Vue</a><a class="post-meta__tags" href="/tags/%E6%9E%B6%E6%9E%84%E8%AE%BE%E8%AE%A1/">架构设计</a></div><div class="post-share"><div class="social-share" data-image="/img/avatar.png" data-sites="facebook,x,wechat,weibo,qq"></div><link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/butterfly-extsrc@1.1.6/sharejs/dist/css/share.min.css" media="print" onload="this.media='all'"><script src="https://cdn.jsdelivr.net/npm/butterfly-extsrc@1.1.6/sharejs/dist/js/social-share.min.js" defer></script></div></div><nav class="pagination-post" id="pagination"><a class="pagination-related" href="/2026/09/25/mp-cloudbase-pitfalls/" title="云开发踩坑：权限、订阅消息、定时器"><div class="cover" style="background: var(--default-bg-color)"></div><div class="info"><div class="info-1"><div class="info-item-1">上一篇</div><div class="info-item-2">云开发踩坑：权限、订阅消息、定时器</div></div><div class="info-2"><div class="info-item-1">这篇不铺垫，直接写踩过的坑。每个坑都是实际撞上、改过代码的，不是从文档里抄的注意事项。 权限：前端直写看起来很美云开发的数据库权限规则有四种模式，配起来很简单。问题是它只能回答「这条记录是不是你创建的」，回答不了「你是不是主任」「这条任务能不能改」。 举个例子。任务由主任创建，指派给成员。如果用「仅创建者可读写」，成员读不到这条任务，因为记录是主任创建的；如果用「所有用户可读」，全中心的人都能看到别人的任务；如果放开写权限，任何人都能把任务状态改成已完成。规则里没有「被指派人可以改状态但不能改标题」这一档。 所以这个项目最后所有写操作都放在云函数里。云函数用的是管理员权限，不受数据库权限规则限制，判断逻辑全在代码里。前端只调 wx.cloud.callFunction，不直接碰 db.collection。 但有一个地方没守规矩。app.js 里刷新未读红点时，直接查了数据库： 1234const db = wx.cloud.database();const res = await db.collection(&#x27;notifications&#x27;)  .where(...</div></div></div></a><a class="pagination-related" href="/2026/09/18/lakes-requirements/" title="湖里 Lakes：给精酿餐吧做点餐系统，需求是怎么理出来的"><div class="cover" style="background: var(--default-bg-color)"></div><div class="info text-right"><div class="info-1"><div class="info-item-1">下一篇</div><div class="info-item-2">湖里 Lakes：给精酿餐吧做点餐系统，需求是怎么理出来的</div></div><div class="info-2"><div class="info-item-1">湖里 Lakes 是朋友开的一家精酿餐吧。我去吃饭那天是周五，店里满座，服务员拿着小本子一桌一桌记，字写得飞快；后厨和收银台之间靠喊，「3 号桌加一份薯条」「门口那位买单」。中途来了两个客人要外带，服务员拿张便签记了酒名，转头去忙别的，那张便签就再也没出现过。 这场景不算新鲜，但对我挺有冲击。店主不是没想过办法，他用过扫码点单的 SaaS，也试过让客人自己写纸条，最后都回到服务员记单。原因很具体：要么菜单对不上店里的酒，要么改个价格要等平台审核，要么收银和点单是两套数据，晚上对账还得再算一遍。 这是我做的第二个小程序项目。第一个是给学校视觉中心做的任务派发工具，需求方是自己人，沟通靠吼就行。这次面对的是真实经营，需求不是「我想要一个什么功能」，而是「我这一天哪里最难受」。 先看店里怎么运转我在店里待了几个晚上，没急着画原型，先看他们怎么干活。  客人坐下，服务员递菜单，等几分钟，记在纸上，送到后厨； 高峰期服务员不够，点单排队，后厨出餐也排队； 客人吃完喊买单，收银台翻本子算钱，碰上优惠或者会员余额，还要再查一遍； 外带和存酒是另一套记录，有时候写在纸上，有时候靠店员记在脑子里；...</div></div></div></a></nav><div class="relatedPosts"><div class="headline"><i class="fas fa-thumbs-up fa-fw"></i><span>相关推荐</span></div><div class="relatedPosts-list"><a class="pagination-related" href="/2026/09/26/lakes-api-docs/" title="湖里 Lakes：557 个接口，我不想手写文档"><div class="cover" style="background: var(--default-bg-color)"></div><div class="info text-center"><div class="info-1"><div class="info-item-1"><i class="far fa-calendar-alt fa-fw"></i> 2026-09-26</div><div class="info-item-2">湖里 Lakes：557 个接口，我不想手写文档</div></div><div class="info-2"><div class="info-item-1">一个人维护后端，最不想干的事就是写接口文档。 不是懒。是这个东西的投入产出比太差：今天写完，明天改个字段，文档就废了；后天再加个接口，又得记得补。只要有一次忘记，后面的人（包括三个月后的我）就会开始猜——这个字段是必填吗，这个状态 1 和 2 分别代表什么，为什么我传了参数没生效。 湖里 Lakes 的后端是在开源项目上改的，接口本来就多。我让脚本扫了一遍源码，当时是 147 个 Controller、557 个活跃端点。这个量级，手写文档不是「麻烦」，是「一定写不完」。 问题不是文档少，是文档不可信项目早期也写过接口文档。结果是这样：  文档里写着 GET /rest/goods/list，实际接口只认 POST； 字段名从 shopId 改成了 shop_id，文档没跟； 有些接口是原作者留下的，代码还在，但前端根本没人调； 同一个接口在三份文档里有三种描述，不知道信哪个。  最要命的是最后一条。文档一旦出现两个版本，读者就会开始怀疑所有内容，最后干脆不看，直接翻代码。那文档就白写了。 所以这次我换了个思路：不追求「写一份完整的文档」，追求「文档和源码永远一致」。一致的前提是...</div></div></div></a></div></div></div><div class="aside-content" id="aside-content"><div class="card-widget card-info text-center"><div class="avatar-img"><img src="data:image/gif;base64,R0lGODlhAQABAIAAAAAAAP///yH5BAEAAAAALAAAAAABAAEAAAIBRAA7" data-lazy-src="/img/avatar.png" onerror="this.onerror=null;this.src='/img/friend_404.gif'" alt="avatar"/></div><div class="author-info-name">aidon</div><div class="author-info-description"></div><div class="site-data"><a href="/archives/"><div class="headline">文章</div><div class="length-num">24</div></a><a href="/tags/"><div class="headline">标签</div><div class="length-num">70</div></a><a href="/categories/"><div class="headline">分类</div><div class="length-num">16</div></a></div><a id="card-info-btn" target="_blank" rel="noopener" href="https://github.com/xxxxxx"><i class="fab fa-github"></i><span>Follow Me</span></a><div class="card-info-social-icons"><a class="social-icon" href="https://github.com/aidon-chen" target="_blank" title="fab fa-github"><i class="github"></i></a></div></div><div class="card-widget card-announcement"><div class="item-headline"><i class="fas fa-bullhorn fa-shake"></i><span>公告</span></div><div class="announcement_content">This is my Blog</div></div><div class="sticky_layout"><div class="card-widget" id="card-toc"><div class="item-headline"><i class="fas fa-stream"></i><span>目录</span><span class="toc-percentage"></span></div><div class="toc-content"><ol class="toc"><li class="toc-item toc-level-2"><a class="toc-link" href="#%E5%85%88%E8%B7%91%E8%B5%B7%E6%9D%A5%EF%BC%8C%E5%86%8D%E5%86%B3%E5%AE%9A%E6%94%B9%E5%93%AA"><span class="toc-number">1.</span> <span class="toc-text">先跑起来，再决定改哪</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#%E7%95%99%E4%B8%8B%E7%9A%84%E9%83%A8%E5%88%86"><span class="toc-number">2.</span> <span class="toc-text">留下的部分</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#%E9%87%8D%E5%86%99%E7%9A%84%E9%83%A8%E5%88%86"><span class="toc-number">3.</span> <span class="toc-text">重写的部分</span></a><ol class="toc-child"><li class="toc-item toc-level-3"><a class="toc-link" href="#%E4%BC%9A%E5%91%98%E4%B8%AD%E5%BF%83"><span class="toc-number">3.1.</span> <span class="toc-text">会员中心</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#%E4%BC%98%E6%83%A0%E5%88%B8%E5%92%8C%E6%BB%A1%E5%87%8F"><span class="toc-number">3.2.</span> <span class="toc-text">优惠券和满减</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#%E5%88%B0%E5%BA%97%E8%87%AA%E6%8F%90%E5%92%8C%E6%A0%B8%E9%94%80"><span class="toc-number">3.3.</span> <span class="toc-text">到店自提和核销</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#%E6%94%B6%E9%93%B6%E5%8F%B0"><span class="toc-number">3.4.</span> <span class="toc-text">收银台</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#%E6%89%AB%E7%A0%81%E7%82%B9%E9%A4%90%E9%93%BE%E8%B7%AF"><span class="toc-number">3.5.</span> <span class="toc-text">扫码点餐链路</span></a></li></ol></li><li class="toc-item toc-level-2"><a class="toc-link" href="#%E5%9B%9B%E4%B8%AA%E5%B7%A5%E7%A8%8B%E6%80%8E%E4%B9%88%E8%BF%9E"><span class="toc-number">4.</span> <span class="toc-text">四个工程怎么连</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#%E6%94%B6%E9%93%B6%E7%AB%AF%E4%B8%BA%E4%BB%80%E4%B9%88%E5%8D%95%E7%8B%AC%E5%81%9A%E4%B8%80%E4%B8%AA-Vue-%E5%BA%94%E7%94%A8"><span class="toc-number">5.</span> <span class="toc-text">收银端为什么单独做一个 Vue 应用</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#%E5%BA%93%E8%A1%A8%E5%A4%A7%E6%A6%82%E9%95%BF%E8%BF%99%E6%A0%B7"><span class="toc-number">6.</span> <span class="toc-text">库表大概长这样</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#%E5%86%B3%E7%AD%96%E7%95%99%E7%97%95%EF%BC%9A%E6%88%91%E4%B8%BA%E4%BB%80%E4%B9%88%E5%BC%80%E5%A7%8B%E5%86%99-ADR"><span class="toc-number">7.</span> <span class="toc-text">决策留痕：我为什么开始写 ADR</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#%E6%94%B6%E4%B8%AA%E5%B0%BE"><span class="toc-number">8.</span> <span class="toc-text">收个尾</span></a></li></ol></div></div><div class="card-widget card-recent-post"><div class="item-headline"><i class="fas fa-history"></i><span>最新文章</span></div><div class="aside-list"><div class="aside-list-item no-cover"><div class="content"><a class="title" href="/2026/11/14/lakes-cloudrun-deploy/" title="湖里 Lakes：搬到微信云托管，部署和踩坑">湖里 Lakes：搬到微信云托管，部署和踩坑</a><time datetime="2026-11-14T13:00:00.000Z" title="发表于 2026-11-14 21:00:00">2026-11-14</time></div></div><div class="aside-list-item no-cover"><div class="content"><a class="title" href="/2026/11/14/study-workbench-service-ai/" title="给复习页接上 SQLite 和 AI 评分：Key 不能进浏览器">给复习页接上 SQLite 和 AI 评分：Key 不能进浏览器</a><time datetime="2026-11-14T13:00:00.000Z" title="发表于 2026-11-14 21:00:00">2026-11-14</time></div></div><div class="aside-list-item no-cover"><div class="content"><a class="title" href="/2026/11/14/study-workbench-frontend/" title="给自己搭了个课程复习平台">给自己搭了个课程复习平台</a><time datetime="2026-11-14T12:00:00.000Z" title="发表于 2026-11-14 20:00:00">2026-11-14</time></div></div><div class="aside-list-item no-cover"><div class="content"><a class="title" href="/2026/11/14/mindmap-editor-tool/" title="161 个测试节点的导图工具：simple-mind-map 加四个插件">161 个测试节点的导图工具：simple-mind-map 加四个插件</a><time datetime="2026-11-14T08:40:00.000Z" title="发表于 2026-11-14 16:40:00">2026-11-14</time></div></div><div class="aside-list-item no-cover"><div class="content"><a class="title" href="/2026/11/04/teci-iteration-workflow/" title="打完 28 轮迭代，我留下的几条工程习惯">打完 28 轮迭代，我留下的几条工程习惯</a><time datetime="2026-11-04T13:30:00.000Z" title="发表于 2026-11-04 21:30:00">2026-11-04</time></div></div></div></div></div></div></main><footer id="footer"><div class="footer-other"><div class="footer-copyright"><span class="copyright">&copy;&nbsp;2026 By aidon</span><span class="framework-info"><span>框架 </span><a target="_blank" rel="noopener" href="https://hexo.io">Hexo 7.3.0</a><span class="footer-separator">|</span><span>主题 </span><a target="_blank" rel="noopener" href="https://github.com/jerryc127/hexo-theme-butterfly">Butterfly 5.6.0</a></span></div></div></footer></div><div id="rightside"><div id="rightside-config-hide"><button id="readmode" type="button" title="阅读模式"><i class="fas fa-book-open"></i></button><button id="darkmode" type="button" title="日间和夜间模式切换"><i class="fas fa-adjust"></i></button><button id="hide-aside-btn" type="button" title="单栏和双栏切换"><i class="fas fa-arrows-alt-h"></i></button></div><div id="rightside-config-show"><button id="rightside-config" type="button" title="设置"><i class="fas fa-cog fa-spin"></i></button><button class="close" id="mobile-toc-button" type="button" title="目录"><i class="fas fa-list-ul"></i></button><button id="go-up" type="button" title="回到顶部"><span class="scroll-percent"></span><i class="fas fa-arrow-up"></i></button></div></div><div><script src="/js/utils.js?v=5.6.0"></script><script src="/js/main.js?v=5.6.0"></script><script src="https://cdn.jsdelivr.net/npm/vanilla-lazyload@19.1.3/dist/lazyload.iife.min.js"></script><div class="js-pjax"><script>(() => {
+  const parseViewBox = viewBox => {
+    if (!viewBox) return null
+    const parts = viewBox.trim().split(/[\s,]+/).map(n => Number(n))
+    if (parts.length !== 4 || parts.some(n => Number.isNaN(n))) return null
+    return parts
+  }
+
+  const getSvgViewBox = svg => {
+    const attr = parseViewBox(svg.getAttribute('viewBox'))
+    if (attr) return attr
+
+    // Fallback: use bbox to build a viewBox
+    try {
+      const bbox = svg.getBBox()
+      if (bbox && bbox.width && bbox.height) return [bbox.x, bbox.y, bbox.width, bbox.height]
+    } catch (e) {
+      // getBBox may fail on some edge cases; ignore
+    }
+
+    const w = Number(svg.getAttribute('width')) || 0
+    const h = Number(svg.getAttribute('height')) || 0
+    if (w > 0 && h > 0) return [0, 0, w, h]
+    return [0, 0, 100, 100]
+  }
+
+  const setSvgViewBox = (svg, vb) => {
+    svg.setAttribute('viewBox', `${vb[0]} ${vb[1]} ${vb[2]} ${vb[3]}`)
+  }
+
+  const clamp = (v, min, max) => Math.max(min, Math.min(max, v))
+
+  const openSvgInNewTab = ({ source, initViewBox }) => {
+    const getClonedSvg = () => {
+      if (typeof source === 'string') {
+        const template = document.createElement('template')
+        template.innerHTML = source.trim()
+        const svg = template.content.querySelector('svg')
+        return svg ? svg.cloneNode(true) : null
+      }
+      if (source && typeof source.cloneNode === 'function') {
+        return source.cloneNode(true)
+      }
+      return null
+    }
+
+    const clone = getClonedSvg()
+    if (!clone) return
+    if (initViewBox && initViewBox.length === 4) {
+      clone.setAttribute('viewBox', initViewBox.join(' '))
+    }
+    if (!clone.getAttribute('xmlns')) clone.setAttribute('xmlns', 'http://www.w3.org/2000/svg')
+    if (!clone.getAttribute('xmlns:xlink') && clone.innerHTML.includes('xlink:')) {
+      clone.setAttribute('xmlns:xlink', 'http://www.w3.org/1999/xlink')
+    }
+    // inject background to match current theme
+    const isDark = document.documentElement.getAttribute('data-theme') === 'dark'
+    const bg = getComputedStyle(document.body).backgroundColor || (isDark ? '#1e1e1e' : '#ffffff')
+    if (!clone.style.background) clone.style.background = bg
+
+    const serializer = new XMLSerializer()
+    const svgSource = serializer.serializeToString(clone)
+    const htmlSource = `<!doctype html><html><head><meta charset="utf-8" />
+      <style>
+        html, body { width: 100%; height: 100%; margin: 0; display: flex; align-items: center; justify-content: center; background: ${bg}; }
+        svg { max-width: 100%; max-height: 100%; height: auto; width: auto; }
+      </style>
+      </head><body>${svgSource}</body></html>`
+    const blob = new Blob([htmlSource], { type: 'text/html;charset=utf-8' })
+    const url = URL.createObjectURL(blob)
+    window.open(url, '_blank', 'noopener')
+
+    setTimeout(() => URL.revokeObjectURL(url), 5000)
+  }
+
+  const attachMermaidViewerButton = wrap => {
+    let btn = wrap.querySelector('.mermaid-open-btn')
+    if (!btn) {
+      btn = document.createElement('button')
+      btn.type = 'button'
+      btn.className = 'mermaid-open-btn'
+      wrap.appendChild(btn)
+    }
+
+    btn.innerHTML = '<i class="fa fa-search fa-fw" aria-hidden="true"></i>'
+
+    if (!btn.__mermaidViewerBound) {
+      btn.addEventListener('click', e => {
+        e.preventDefault()
+        e.stopPropagation()
+        const svg = wrap.__mermaidOriginalSvg || wrap.querySelector('svg')
+        if (!svg) return
+        const initViewBox = wrap.__mermaidInitViewBox
+        openSvgInNewTab({ source: svg, initViewBox })
+      })
+      btn.__mermaidViewerBound = true
+    }
+  }
+
+  // Zoom around a point (px, py) in the SVG viewport (in viewBox coordinates)
+  const zoomAtPoint = (vb, factor, px, py) => {
+    const w = vb[2] * factor
+    const h = vb[3] * factor
+    const nx = px - (px - vb[0]) * factor
+    const ny = py - (py - vb[1]) * factor
+    return [nx, ny, w, h]
+  }
+
+  const initMermaidGestures = wrap => {
+    // Clean up previous event listeners and pending frames
+    if (wrap.__mermaidAbortController) {
+      wrap.__mermaidAbortController.abort()
+      if (wrap.__mermaidRafId) cancelAnimationFrame(wrap.__mermaidRafId)
+    }
+    const ac = new AbortController()
+    wrap.__mermaidAbortController = ac
+    const svg = wrap.querySelector('svg')
+    if (!svg) return
+
+    // Ensure viewBox exists so gestures always work
+    const initVb = getSvgViewBox(svg)
+    wrap.__mermaidInitViewBox = initVb
+    wrap.__mermaidCurViewBox = initVb.slice()
+    setSvgViewBox(svg, initVb)
+    // Disable default gestures to prevent scroll chaining and pinch-zoom penetration in Chrome
+    svg.style.touchAction = 'none'
+
+    // Cache BoundingClientRect, throttled on scroll to reduce reflow
+    let cachedRect = svg.getBoundingClientRect()
+    let rectDirty = false
+    const markRectDirty = () => { rectDirty = true }
+    window.addEventListener('resize', markRectDirty, { signal: ac.signal })
+    window.addEventListener('scroll', markRectDirty, { signal: ac.signal, capture: true })
+    const getRect = () => {
+      if (rectDirty) {
+        cachedRect = svg.getBoundingClientRect()
+        rectDirty = false
+      }
+      return cachedRect
+    }
+
+    // Precompute clamp bounds from initial viewBox
+    const minW = initVb[2] * 0.1
+    const maxW = initVb[2] * 10
+    const minH = initVb[3] * 0.1
+    const maxH = initVb[3] * 10
+    const clampVb = vb => {
+      const out = vb.slice()
+      out[2] = clamp(out[2], minW, maxW)
+      out[3] = clamp(out[3], minH, maxH)
+      return out
+    }
+
+    // Throttle DOM updates using requestAnimationFrame
+    let pendingVb = null
+    let rafId = null
+    const applyVb = () => {
+      if (pendingVb) {
+        wrap.__mermaidCurViewBox = pendingVb
+        setSvgViewBox(svg, pendingVb)
+        pendingVb = null
+      }
+      rafId = null
+      wrap.__mermaidRafId = null
+    }
+    const setCurVb = vb => {
+      pendingVb = clampVb(vb)
+      if (!rafId) {
+        rafId = requestAnimationFrame(applyVb)
+        wrap.__mermaidRafId = rafId
+      }
+    }
+
+    const state = {
+      pointers: new Map(),
+      startVb: null,
+      startDist: 0,
+      lastPointerX: 0,
+      lastPointerY: 0
+    }
+
+    const onPointerDown = e => {
+      if (e.pointerType === 'mouse' && e.button !== 0) return
+      svg.setPointerCapture(e.pointerId)
+      const curVb = wrap.__mermaidCurViewBox
+      state.pointers.set(e.pointerId, { x: e.clientX, y: e.clientY })
+      if (state.pointers.size === 1) {
+        state.startVb = curVb.slice()
+        state.lastPointerX = e.clientX
+        state.lastPointerY = e.clientY
+      } else if (state.pointers.size === 2) {
+        const pts = [...state.pointers.values()]
+        const dx = pts[0].x - pts[1].x
+        const dy = pts[0].y - pts[1].y
+        state.startDist = Math.hypot(dx, dy)
+        state.startVb = curVb.slice()
+      }
+    }
+
+    const onPointerMove = e => {
+      if (!state.pointers.has(e.pointerId)) return
+      state.pointers.set(e.pointerId, { x: e.clientX, y: e.clientY })
+      const curVb = wrap.__mermaidCurViewBox
+      const rect = getRect()
+      if (state.pointers.size === 1 && state.startVb) {
+        const p = state.pointers.values().next().value
+        const dxClient = p.x - state.lastPointerX
+        const dyClient = p.y - state.lastPointerY
+        state.lastPointerX = p.x
+        state.lastPointerY = p.y
+        const dx = dxClient * (curVb[2] / rect.width)
+        const dy = dyClient * (curVb[3] / rect.height)
+        setCurVb([curVb[0] - dx, curVb[1] - dy, curVb[2], curVb[3]])
+        return
+      }
+      if (state.pointers.size === 2 && state.startVb && state.startDist > 0) {
+        const pts = [...state.pointers.values()]
+        const dx = pts[0].x - pts[1].x
+        const dy = pts[0].y - pts[1].y
+        const dist = Math.hypot(dx, dy)
+        if (!dist) return
+        const factor = state.startDist / dist
+        const cx = (pts[0].x + pts[1].x) / 2
+        const cy = (pts[0].y + pts[1].y) / 2
+        const px = curVb[0] + (cx - rect.left) * (curVb[2] / rect.width)
+        const py = curVb[1] + (cy - rect.top) * (curVb[3] / rect.height)
+        setCurVb(zoomAtPoint(state.startVb, factor, px, py))
+      }
+    }
+
+    const onPointerUpOrCancel = e => {
+      // Release PointerCapture to avoid event capture anomalies
+      if (svg.hasPointerCapture && svg.hasPointerCapture(e.pointerId)) {
+        svg.releasePointerCapture(e.pointerId)
+      }
+      state.pointers.delete(e.pointerId)
+      if (state.pointers.size === 0) {
+        state.startVb = null
+        state.startDist = 0
+      } else if (state.pointers.size === 1) {
+        const p = state.pointers.values().next().value
+        state.lastPointerX = p.x
+        state.lastPointerY = p.y
+      }
+    }
+
+    const onWheel = e => {
+      // Prevent event bubbling from triggering external scroll
+      e.preventDefault()
+      e.stopPropagation()
+      // Normalize deltaY across deltaMode (Chrome uses pixels, Safari uses lines)
+      let delta = e.deltaY
+      if (e.deltaMode === 1) delta *= 16
+      else if (e.deltaMode === 2) delta *= 400
+
+      // Continuous zoom factor: smoother than fixed 1.1/0.9 steps
+      const zoomFactor = Math.pow(1.001, delta)
+
+      const curVb = wrap.__mermaidCurViewBox
+      const rect = getRect()
+      const px = curVb[0] + (e.clientX - rect.left) * (curVb[2] / rect.width)
+      const py = curVb[1] + (e.clientY - rect.top) * (curVb[3] / rect.height)
+      setCurVb(zoomAtPoint(curVb, zoomFactor, px, py))
+    }
+
+    const onDblClick = () => {
+      const init = wrap.__mermaidInitViewBox
+      if (init) setCurVb(init)
+    }
+
+    svg.addEventListener('pointerdown', onPointerDown, { signal: ac.signal })
+    svg.addEventListener('pointermove', onPointerMove, { signal: ac.signal })
+    svg.addEventListener('pointerup', onPointerUpOrCancel, { signal: ac.signal })
+    svg.addEventListener('pointercancel', onPointerUpOrCancel, { signal: ac.signal })
+    svg.addEventListener('wheel', onWheel, { passive: false, signal: ac.signal })
+    svg.addEventListener('dblclick', onDblClick, { signal: ac.signal })
+  }
+
+  const runMermaid = ele => {
+    window.loadMermaid = true
+    const theme = document.documentElement.getAttribute('data-theme') === 'dark' ? 'dark' : 'default'
+    ele.forEach((item, index) => {
+      const mermaidSrc = item.firstElementChild
+      // Clean up event listeners before removing old SVG
+      if (item.__mermaidAbortController) {
+        item.__mermaidAbortController.abort()
+      }
+      const oldSvg = item.querySelector('svg')
+      if (oldSvg) oldSvg.remove()
+      let config = {}
+      try {
+        config = mermaidSrc.dataset.config ? JSON.parse(mermaidSrc.dataset.config) : {}
+      } catch (e) {
+        console.warn('[mermaid] failed to parse dataset.config:', e)
+      }
+      if (!config.theme) {
+        config.theme = theme
+      }
+      const mermaidThemeConfig = `%%{init: ${JSON.stringify(config)}}%%\n`
+      const mermaidID = `mermaid-${index}`
+      const mermaidDefinition = mermaidThemeConfig + mermaidSrc.textContent
+
+      const renderMermaid = svg => {
+        mermaidSrc.insertAdjacentHTML('afterend', svg)
+        if (true) initMermaidGestures(item)
+        item.__mermaidOriginalSvg = svg
+        if (true) attachMermaidViewerButton(item)
+      }
+
+      const handleError = err => {
+        console.error(`[mermaid] render failed for block #${index}:`, err)
+        const errorEl = document.createElement('div')
+        errorEl.className = 'mermaid-error'
+        errorEl.textContent = `Mermaid render error: ${err.message || err}`
+        mermaidSrc.insertAdjacentElement('afterend', errorEl)
+      }
+
+      try {
+        const renderFn = mermaid.render(mermaidID, mermaidDefinition)
+        // mermaid v9 and v10 compatibility
+        if (typeof renderFn === 'string') {
+          renderMermaid(renderFn)
+        } else {
+          renderFn.then(({ svg }) => renderMermaid(svg)).catch(handleError)
+        }
+      } catch (err) {
+        handleError(err)
+      }
+    })
+  }
+
+  const codeToMermaid = $article => {
+    const codeMermaidEle = $article.querySelectorAll('pre > code.mermaid')
+    if (codeMermaidEle.length === 0) return
+
+    codeMermaidEle.forEach(ele => {
+      const preEle = document.createElement('pre')
+      preEle.className = 'mermaid-src'
+      preEle.hidden = true
+      preEle.textContent = ele.textContent
+      const newEle = document.createElement('div')
+      newEle.className = 'mermaid-wrap'
+      newEle.appendChild(preEle)
+      ele.parentNode.replaceWith(newEle)
+    })
+  }
+
+  const loadMermaid = () => {
+    const $article = document.getElementById('article-container')
+    if (!$article) return
+
+    if (false) codeToMermaid($article)
+    const $mermaid = $article.querySelectorAll('.mermaid-wrap')
+    if ($mermaid.length === 0) return
+
+    const runMermaidFn = () => runMermaid($mermaid)
+    btf.addGlobalFn('themeChange', runMermaidFn, 'mermaid')
+    window.loadMermaid ? runMermaidFn() : btf.getScript('https://cdn.jsdelivr.net/npm/mermaid@11.16.0/dist/mermaid.min.js').then(runMermaidFn)
+  }
+
+  btf.addGlobalFn('encrypt', loadMermaid, 'mermaid')
+  window.pjax ? loadMermaid() : document.addEventListener('DOMContentLoaded', loadMermaid)
+})()</script></div><script async data-pjax src="//busuanzi.ibruce.info/busuanzi/2.3/busuanzi.pure.mini.js"></script></div></body></html>

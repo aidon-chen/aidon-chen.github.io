@@ -1,0 +1,616 @@
+<!DOCTYPE html><html lang="zh-CN" data-theme="light"><head><meta charset="UTF-8"><meta http-equiv="X-UA-Compatible" content="IE=edge"><meta name="viewport" content="width=device-width, initial-scale=1.0,viewport-fit=cover"><title>一个任务从发布到验收，中间转了几手 | aidon's blog</title><meta name="author" content="aidon"><meta name="copyright" content="aidon"><meta name="format-detection" content="telephone=no"><meta name="theme-color" content="#ffffff"><meta name="description" content="任务状态只有五个值，但谁能改、什么时候能改、两个人同时改会怎样，才是真正容易出问题的地方。">
+<meta property="og:type" content="article">
+<meta property="og:title" content="一个任务从发布到验收，中间转了几手">
+<meta property="og:url" content="https://aidon-chen.github.io/2026/09/05/mp-task-dispatch-state-machine/index.html">
+<meta property="og:site_name" content="aidon&#39;s blog">
+<meta property="og:description" content="任务状态只有五个值，但谁能改、什么时候能改、两个人同时改会怎样，才是真正容易出问题的地方。">
+<meta property="og:locale" content="zh_CN">
+<meta property="og:image" content="https://aidon-chen.github.io/img/avatar.png">
+<meta property="article:published_time" content="2026-09-05T13:00:00.000Z">
+<meta property="article:modified_time" content="2026-11-14T07:44:10.849Z">
+<meta property="article:author" content="aidon">
+<meta property="article:tag" content="云开发">
+<meta property="article:tag" content="云数据库">
+<meta property="article:tag" content="状态机">
+<meta property="article:tag" content="权限设计">
+<meta name="twitter:card" content="summary">
+<meta name="twitter:image" content="https://aidon-chen.github.io/img/avatar.png"><script type="application/ld+json">{
+  "@context": "https://schema.org",
+  "@type": "BlogPosting",
+  "headline": "一个任务从发布到验收，中间转了几手",
+  "url": "https://aidon-chen.github.io/2026/09/05/mp-task-dispatch-state-machine/",
+  "image": "https://aidon-chen.github.io/img/avatar.png",
+  "datePublished": "2026-09-05T13:00:00.000Z",
+  "dateModified": "2026-11-14T07:44:10.849Z",
+  "author": [
+    {
+      "@type": "Person",
+      "name": "aidon",
+      "url": "https://aidon-chen.github.io"
+    }
+  ]
+}</script><link rel="shortcut icon" href="/img/favicon.ico"><link rel="canonical" href="https://aidon-chen.github.io/2026/09/05/mp-task-dispatch-state-machine/index.html"><link rel="preconnect" href="//cdn.jsdelivr.net"/><link rel="preconnect" href="//busuanzi.ibruce.info"/><link rel="stylesheet" href="/css/index.css?v=5.6.0"><link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@fortawesome/fontawesome-free@7.3.1/css/all.min.css"><script>
+    (() => {
+      
+    const saveToLocal = {
+      set: (key, value, ttl) => {
+        const data = { value }
+
+        if (ttl != null) {
+          data.expiry = Date.now() + ttl * 86400000
+        }
+
+        localStorage.setItem(key, JSON.stringify(data))
+      },
+      get: key => {
+        const itemStr = localStorage.getItem(key)
+        if (!itemStr) return
+
+        try {
+          const data = JSON.parse(itemStr)
+
+          if (data.expiry && Date.now() > data.expiry) {
+            localStorage.removeItem(key)
+            return
+          }
+
+          return data.value
+        } catch {
+          localStorage.removeItem(key)
+        }
+      }
+    }
+
+    const scriptCache = new Map()
+    const cssCache = new Map()
+    window.btf = {
+      saveToLocal,
+      getScript: (url, attr = {}) => {
+        if (scriptCache.has(url)) {
+          return scriptCache.get(url)
+        }
+
+        const promise = new Promise((resolve, reject) => {
+          const script = document.createElement('script')
+
+          script.src = url
+          script.async = true
+
+          for (const key in attr) {
+            script.setAttribute(key, attr[key])
+          }
+
+          script.onload = resolve
+          script.onerror = reject
+
+          document.head.appendChild(script)
+        })
+
+        scriptCache.set(url, promise)
+
+        return promise
+      },
+      getCSS: (url, id) => {
+        if (cssCache.has(url)) {
+          return cssCache.get(url)
+        }
+
+        const promise = new Promise((resolve, reject) => {
+          const link = document.createElement('link')
+
+          link.rel = 'stylesheet'
+          link.href = url
+
+          if (id) {
+            link.id = id
+          }
+
+          link.onload = resolve
+          link.onerror = reject
+
+          document.head.appendChild(link)
+        })
+
+        cssCache.set(url, promise)
+
+        return promise
+      },
+      addGlobalFn: (key, fn, name = false, parent = window) => {
+        if (!false && key.startsWith('pjax')) return
+        const globalFn = parent.globalFn || {}
+        globalFn[key] = globalFn[key] || {}
+        globalFn[key][name || Object.keys(globalFn[key]).length] = fn
+        parent.globalFn = globalFn
+      }
+    }
+  
+      
+      const metaThemeColor = document.querySelector('meta[name="theme-color"]')
+      const activateDarkMode = () => {
+        document.documentElement.dataset.theme = 'dark'
+        if (metaThemeColor !== null) {
+          metaThemeColor.setAttribute('content', '#0d0d0d')
+        }
+      }
+      const activateLightMode = () => {
+        document.documentElement.dataset.theme = 'light'
+        if (metaThemeColor !== null) {
+          metaThemeColor.setAttribute('content', '#ffffff')
+        }
+      }
+
+      btf.activateDarkMode = activateDarkMode
+      btf.activateLightMode = activateLightMode
+
+      const theme = saveToLocal.get('theme')
+    
+          theme === 'dark' ? activateDarkMode() : theme === 'light' ? activateLightMode() : null
+        
+      
+      const asideStatus = saveToLocal.get('aside-status')
+      if (asideStatus !== undefined) {
+        document.documentElement.classList.toggle('hide-aside', asideStatus === 'hide')
+      }
+    
+      
+    const detectApple = () => {
+      if (/iPad|iPhone|iPod|Macintosh/.test(navigator.userAgent)) {
+        document.documentElement.classList.add('apple')
+      }
+    }
+    detectApple()
+  
+    })()
+  </script><script>const GLOBAL_CONFIG = {
+  root: '/',
+  algolia: undefined,
+  localSearch: undefined,
+  translate: undefined,
+  highlight: {"plugin":"highlight.js","highlightCopy":true,"highlightLang":true,"highlightHeightLimit":false,"highlightFullpage":false,"highlightMacStyle":false},
+  copy: {
+    success: '复制成功',
+    error: '复制失败',
+    noSupport: '浏览器不支持'
+  },
+  relativeDate: {
+    homepage: false,
+    post: false
+  },
+  runtime: '',
+  dateSuffix: {
+    just: '刚刚',
+    min: '分钟前',
+    hour: '小时前',
+    day: '天前',
+    month: '个月前'
+  },
+  copyright: undefined,
+  lightbox: 'null',
+  Snackbar: undefined,
+  infinitegrid: {
+    js: 'https://cdn.jsdelivr.net/npm/@egjs/infinitegrid@4.13.0/dist/infinitegrid.min.js',
+    buttonText: '加载更多'
+  },
+  isPhotoFigcaption: false,
+  islazyloadPlugin: true,
+  isAnchor: false,
+  percent: {
+    toc: true,
+    rightside: false,
+  },
+  autoDarkmode: false
+}</script><script id="config-diff">var GLOBAL_CONFIG_SITE = {
+  title: '一个任务从发布到验收，中间转了几手',
+  isHighlightShrink: false,
+  isToc: true,
+  pageType: 'post'
+}</script><meta name="generator" content="Hexo 7.3.0"></head><body><div id="sidebar"><div id="menu-mask"></div><div id="sidebar-menus"><div class="avatar-img text-center"><img src="data:image/gif;base64,R0lGODlhAQABAIAAAAAAAP///yH5BAEAAAAALAAAAAABAAEAAAIBRAA7" data-lazy-src="/img/avatar.png" onerror="this.onerror=null;this.src='/img/friend_404.gif'" alt="avatar"/></div><div class="site-data text-center"><a href="/archives/"><div class="headline">文章</div><div class="length-num">24</div></a><a href="/tags/"><div class="headline">标签</div><div class="length-num">70</div></a><a href="/categories/"><div class="headline">分类</div><div class="length-num">16</div></a></div><div class="menus_items"><div class="menus_item"><a class="site-page" href="/"><i class="fa-fw fas fa-home"></i><span> 首页</span></a></div><div class="menus_item"><a class="site-page" href="/archives/"><i class="fa-fw fas fa-archive"></i><span> 归档</span></a></div><div class="menus_item"><a class="site-page" href="/categories/"><i class="fa-fw fas fa-folder-open"></i><span> 分类</span></a></div><div class="menus_item"><a class="site-page" href="/tags/"><i class="fa-fw fas fa-tags"></i><span> 标签</span></a></div><div class="menus_item"><a class="site-page" href="/gallery/"><i class="fa-fw fas fa-images"></i><span> 相册</span></a></div><div class="menus_item"><a class="site-page" href="/about/"><i class="fa-fw fas fa-heart"></i><span> 关于</span></a></div></div></div></div><div class="post" id="body-wrap"><header class="post-bg" id="page-header"><nav id="nav"><span id="blog-info"><a class="nav-site-title" href="/"><span class="site-name">aidon's blog</span></a><a class="nav-page-title" href="/"><span class="site-name">一个任务从发布到验收，中间转了几手</span><span class="site-name"><i class="fa-solid fa-circle-arrow-left"></i><span>  返回首页</span></span></a></span><div id="menus"><div id="search-button"><span class="site-page social-icon search"><i class="fas fa-search fa-fw"></i><span> 搜索</span></span></div><div class="menus_items"><div class="menus_item"><a class="site-page" href="/"><i class="fa-fw fas fa-home"></i><span> 首页</span></a></div><div class="menus_item"><a class="site-page" href="/archives/"><i class="fa-fw fas fa-archive"></i><span> 归档</span></a></div><div class="menus_item"><a class="site-page" href="/categories/"><i class="fa-fw fas fa-folder-open"></i><span> 分类</span></a></div><div class="menus_item"><a class="site-page" href="/tags/"><i class="fa-fw fas fa-tags"></i><span> 标签</span></a></div><div class="menus_item"><a class="site-page" href="/gallery/"><i class="fa-fw fas fa-images"></i><span> 相册</span></a></div><div class="menus_item"><a class="site-page" href="/about/"><i class="fa-fw fas fa-heart"></i><span> 关于</span></a></div></div><div id="toggle-menu"><span class="site-page"><i class="fas fa-bars fa-fw"></i></span></div></div></nav><div id="post-info"><h1 class="post-title">一个任务从发布到验收，中间转了几手</h1><div id="post-meta"><div class="meta-firstline"><span class="post-meta-date"><i class="far fa-calendar-alt fa-fw post-meta-icon"></i><span class="post-meta-label">发表于</span><time class="post-meta-date-created" datetime="2026-09-05T13:00:00.000Z" title="发表于 2026-09-05 21:00:00">2026-09-05</time><span class="post-meta-separator">|</span><i class="fas fa-history fa-fw post-meta-icon"></i><span class="post-meta-label">更新于</span><time class="post-meta-date-updated" datetime="2026-11-14T07:44:10.849Z" title="更新于 2026-11-14 15:44:10">2026-11-14</time></span><span class="post-meta-categories"><span class="post-meta-separator">|</span><i class="fas fa-inbox fa-fw post-meta-icon"></i><a class="post-meta-categories" href="/categories/%E5%BE%AE%E4%BF%A1%E5%B0%8F%E7%A8%8B%E5%BA%8F/">微信小程序</a><i class="fas fa-angle-right post-meta-separator"></i><i class="fas fa-inbox fa-fw post-meta-icon"></i><a class="post-meta-categories" href="/categories/%E5%BE%AE%E4%BF%A1%E5%B0%8F%E7%A8%8B%E5%BA%8F/%E4%BB%BB%E5%8A%A1%E6%B4%BE%E5%8F%91/">任务派发</a></span></div><div class="meta-secondline"><span class="post-meta-separator">|</span><span class="post-meta-wordcount"><i class="far fa-file-word fa-fw post-meta-icon"></i><span class="post-meta-label">总字数:</span><span class="word-count">2.2k</span><span class="post-meta-separator">|</span><i class="far fa-clock fa-fw post-meta-icon"></i><span class="post-meta-label">阅读时长:</span><span>7分钟</span></span><span class="post-meta-separator">|</span><span class="post-meta-pv-cv" id="" data-flag-title=""><i class="far fa-eye fa-fw post-meta-icon"></i><span class="post-meta-label">浏览量:</span><span id="busuanzi_value_page_pv"><i class="fa-solid fa-spinner fa-spin"></i></span></span></div></div></div></header><main class="layout" id="content-inner"><div id="post"><article class="container post-content" id="article-container"><p>标题里的「验收」其实是我后来加的。代码里没有单独的验收状态，最后一步就是成员点「标记完成」，主任事后可以改回来。写这篇文章的时候我翻了 <code>updateTask</code> 的代码，发现真正麻烦的不是状态有几种，而是谁能改、在什么情况下能改，以及两个人同时改会发生什么。</p>
+<h2 id="五个状态"><a href="#五个状态" class="headerlink" title="五个状态"></a>五个状态</h2><p>任务状态定义在 <code>app.js</code> 的 <code>taskStatusMap</code> 里：</p>
+<figure class="highlight js"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br></pre></td><td class="code"><pre><span class="line"><span class="attr">taskStatusMap</span>: &#123;</span><br><span class="line">  <span class="attr">pending</span>:    &#123; <span class="attr">label</span>: <span class="string">&#x27;待确认&#x27;</span>, <span class="attr">color</span>: <span class="string">&#x27;#FF9800&#x27;</span> &#125;,</span><br><span class="line">  <span class="attr">confirmed</span>:  &#123; <span class="attr">label</span>: <span class="string">&#x27;已确认&#x27;</span>, <span class="attr">color</span>: <span class="string">&#x27;#2196F3&#x27;</span> &#125;,</span><br><span class="line">  <span class="attr">in_progress</span>:&#123; <span class="attr">label</span>: <span class="string">&#x27;进行中&#x27;</span>, <span class="attr">color</span>: <span class="string">&#x27;#4CAF50&#x27;</span> &#125;,</span><br><span class="line">  <span class="attr">completed</span>:  &#123; <span class="attr">label</span>: <span class="string">&#x27;已完成&#x27;</span>, <span class="attr">color</span>: <span class="string">&#x27;#9E9E9E&#x27;</span> &#125;,</span><br><span class="line">  <span class="attr">cancelled</span>:  &#123; <span class="attr">label</span>: <span class="string">&#x27;已取消&#x27;</span>, <span class="attr">color</span>: <span class="string">&#x27;#F44336&#x27;</span> &#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p>一条任务的正常路径是：主任创建后是 <code>pending</code>，被指派的成员点「确认接受」变成 <code>confirmed</code>，到现场点「标记开始」变成 <code>in_progress</code>，做完点「标记完成」变成 <code>completed</code>。主任可以在任何未结束的状态下直接取消，变成 <code>cancelled</code>。</p>
+<p>还有一条不太起眼的回流：成员在 <code>in_progress</code> 时点「申请调整交付状态」，任务会回到 <code>pending</code>，等主任重新处理。</p>
+<h2 id="为什么不用一个-isDone"><a href="#为什么不用一个-isDone" class="headerlink" title="为什么不用一个 isDone"></a>为什么不用一个 isDone</h2><p>最开始我想偷懒，给任务加一个 <code>isDone</code> 布尔值，做完设 <code>true</code>。写了两天就发现不够用。</p>
+<p>布尔值只有两个值，但实际需要区分「刚发出去还没人理」「成员已经答应了」「人已经在现场了」「做完了」。这四种情况对主任的意义完全不同：待确认要催人，已确认不用管，进行中要看进度，已完成要统计。一个 <code>isDone</code> 表达不了中间态，最后一定会再加一个 <code>isStarted</code>、一个 <code>isAccepted</code>，变回一堆布尔值。</p>
+<p>用字符串枚举之后，前端筛选、统计计数、状态标签颜色都能直接按同一个字段走。<code>status-badge</code> 组件只认 <code>task.status</code>，不需要判断多个布尔值。</p>
+<h2 id="谁能改"><a href="#谁能改" class="headerlink" title="谁能改"></a>谁能改</h2><p>权限判断在 <code>updateTask</code> 里，逻辑不复杂，但值得抄出来看：</p>
+<figure class="highlight js"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">const</span> isCreator = task.<span class="property">creatorId</span> === user.<span class="property">_id</span>;</span><br><span class="line"><span class="keyword">const</span> isAssigned = task.<span class="property">assignedTo</span> &amp;&amp; task.<span class="property">assignedTo</span>.<span class="title function_">includes</span>(user.<span class="property">_id</span>);</span><br><span class="line"><span class="keyword">const</span> isDirector = userLevel &gt;= <span class="variable constant_">ROLE_LEVEL</span>.<span class="property">photo_director</span>;</span><br><span class="line"></span><br><span class="line"><span class="keyword">const</span> onlyStatusChange =</span><br><span class="line">  <span class="title class_">Object</span>.<span class="title function_">keys</span>(updates).<span class="property">length</span> === <span class="number">1</span> &amp;&amp; <span class="string">&#x27;status&#x27;</span> <span class="keyword">in</span> updates;</span><br><span class="line"></span><br><span class="line"><span class="keyword">if</span> (!isDirector &amp;&amp; !isCreator &amp;&amp; !(onlyStatusChange &amp;&amp; isAssigned)) &#123;</span><br><span class="line">  <span class="keyword">return</span> <span class="title class_">Response</span>.<span class="title function_">permissionDenied</span>(<span class="string">&#x27;你没有权限修改此任务&#x27;</span>);</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p>翻译一下：主任什么都能改；创建者能改；被指派的人只有在「这次请求只改 status 一个字段」时才能改。如果被指派的人想顺手改标题，会被拦下来，提示「仅主任可编辑任务详情」。</p>
+<p>这个限制是必要的。成员需要能确认、开始、完成，但不需要能改任务内容。把「能改状态」和「能改详情」拆开，比笼统给一个「能编辑」权限安全得多。</p>
+<h2 id="那张没被用上的转换表"><a href="#那张没被用上的转换表" class="headerlink" title="那张没被用上的转换表"></a>那张没被用上的转换表</h2><p>代码里其实写了一张成员合法转换表：</p>
+<figure class="highlight js"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">const</span> allowedMemberStatus = &#123;</span><br><span class="line">  <span class="attr">pending_to_confirmed</span>: <span class="string">&#x27;确认接受&#x27;</span>,</span><br><span class="line">  <span class="attr">confirmed_to_in_progress</span>: <span class="string">&#x27;开始任务&#x27;</span>,</span><br><span class="line">  <span class="attr">in_progress_to_completed</span>: <span class="string">&#x27;完成任务&#x27;</span>,</span><br><span class="line">  <span class="attr">completed_to_pending</span>: <span class="string">&#x27;申请调整&#x27;</span></span><br><span class="line">&#125;;</span><br></pre></td></tr></table></figure>
+
+<p>看起来挺像回事，问题是它后面没有被任何地方引用。真正的校验只做了「非主任不能改状态以外的字段」，没有校验「你改的这个状态是不是从当前状态合法走过来的」。</p>
+<p>也就是说，一个被指派的成员如果绕过前端，直接调 <code>updateTask</code> 把 <code>pending</code> 改成 <code>completed</code>，云函数会放行。前端之所以看起来正常，是因为任务详情页按状态藏了按钮：<code>pending</code> 只显示「确认接受」，<code>confirmed</code> 只显示「开始」，<code>in_progress</code> 才显示「完成」。</p>
+<p>前端藏按钮不是权限。只要接口能被直接调用，服务端就必须自己校验。这是我现在最想补的一块，补起来也不难：</p>
+<figure class="highlight js"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">const</span> <span class="variable constant_">TRANSITIONS</span> = &#123;</span><br><span class="line">  <span class="attr">pending</span>: [<span class="string">&#x27;confirmed&#x27;</span>, <span class="string">&#x27;cancelled&#x27;</span>],</span><br><span class="line">  <span class="attr">confirmed</span>: [<span class="string">&#x27;in_progress&#x27;</span>, <span class="string">&#x27;cancelled&#x27;</span>],</span><br><span class="line">  <span class="attr">in_progress</span>: [<span class="string">&#x27;completed&#x27;</span>, <span class="string">&#x27;pending&#x27;</span>, <span class="string">&#x27;cancelled&#x27;</span>],</span><br><span class="line">  <span class="attr">completed</span>: [<span class="string">&#x27;pending&#x27;</span>],</span><br><span class="line">  <span class="attr">cancelled</span>: []</span><br><span class="line">&#125;;</span><br><span class="line"></span><br><span class="line"><span class="keyword">const</span> allowed = <span class="variable constant_">TRANSITIONS</span>[task.<span class="property">status</span>] || [];</span><br><span class="line"><span class="keyword">if</span> (!allowed.<span class="title function_">includes</span>(updates.<span class="property">status</span>)) &#123;</span><br><span class="line">  <span class="keyword">return</span> <span class="title class_">Response</span>.<span class="title function_">paramError</span>(<span class="string">&#x27;当前状态不支持这个操作&#x27;</span>);</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p>这段现在还没进代码，先记在这儿。</p>
+<h2 id="数据库权限规则管不了业务"><a href="#数据库权限规则管不了业务" class="headerlink" title="数据库权限规则管不了业务"></a>数据库权限规则管不了业务</h2><p>云开发的数据库权限有四种模式：所有用户可读、仅创建者可读写、所有用户可读仅创建者可写、所有用户不可读写。听起来够用，实际只能回答一个问题：这条记录是不是你创建的。</p>
+<p>任务派发的场景比这个复杂。一条任务由主任创建，指派给成员；成员要能读，还要能改状态，但不能改标题；其他部门的成员不该看到；中心主任要能看到全部。这些规则没有一条能只靠「记录是不是你创建的」表达出来。</p>
+<p>所以这个项目的写操作全部放在云函数里。云函数用的是管理员权限，不受数据库权限规则限制，判断逻辑写在代码里。前端只调 <code>wx.cloud.callFunction</code>，不直接碰 <code>db.collection</code>。</p>
+<p>代价是每加一个操作就要多写一个云函数分支，不能像前端直写那样一行 <code>add</code> 解决。但权限规则至少是集中的，不会散在十几个页面里。</p>
+<h2 id="两个人同时点会怎样"><a href="#两个人同时点会怎样" class="headerlink" title="两个人同时点会怎样"></a>两个人同时点会怎样</h2><p>现在的代码是先读任务、再判断权限、最后更新：</p>
+<figure class="highlight js"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">const</span> &#123; <span class="attr">data</span>: tasks &#125; = <span class="keyword">await</span> tasksCollection.<span class="title function_">doc</span>(taskId).<span class="title function_">get</span>();</span><br><span class="line"><span class="keyword">const</span> task = tasks.<span class="property">length</span> ? tasks[<span class="number">0</span>] : tasks;</span><br><span class="line"></span><br><span class="line"><span class="comment">// ...权限判断...</span></span><br><span class="line"></span><br><span class="line"><span class="keyword">await</span> tasksCollection.<span class="title function_">doc</span>(taskId).<span class="title function_">update</span>(&#123; <span class="attr">data</span>: updateData &#125;);</span><br></pre></td></tr></table></figure>
+
+<p>这个写法在大多数时候没问题，因为它默认「读和写之间不会有人插进来」。实际上会。</p>
+<p>举两个真实会发生的场景。一个是主任点「取消」的同时，成员点「标记开始」：主任先读到 <code>confirmed</code>，成员也读到 <code>confirmed</code>，然后两个 update 先后落下，谁后写谁赢。结果可能是任务已经取消了，状态却又变成 <code>in_progress</code>。</p>
+<p>另一个是定时器。<code>scheduleNotify</code> 每 30 分钟扫一次，把 <code>endTime</code> 已过且状态是 <code>in_progress</code> 的任务自动置为 <code>completed</code>。如果成员刚好在同一时间点「标记完成」，两边都写 <code>completed</code>，状态没错，但通知会发两遍。</p>
+<p>要修的话，最直接的是条件更新：</p>
+<figure class="highlight js"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">const</span> expectedStatus = task.<span class="property">status</span>;</span><br><span class="line"><span class="keyword">const</span> res = <span class="keyword">await</span> tasksCollection</span><br><span class="line">  .<span class="title function_">where</span>(&#123; <span class="attr">_id</span>: taskId, <span class="attr">status</span>: expectedStatus &#125;)</span><br><span class="line">  .<span class="title function_">update</span>(&#123;</span><br><span class="line">    <span class="attr">data</span>: &#123; <span class="attr">status</span>: updates.<span class="property">status</span>, <span class="attr">updatedAt</span>: <span class="keyword">new</span> <span class="title class_">Date</span>() &#125;</span><br><span class="line">  &#125;);</span><br><span class="line"></span><br><span class="line"><span class="keyword">if</span> (res.<span class="property">stats</span>.<span class="property">updated</span> === <span class="number">0</span>) &#123;</span><br><span class="line">  <span class="keyword">return</span> <span class="title class_">Response</span>.<span class="title function_">paramError</span>(<span class="string">&#x27;任务状态已经变了，请刷新后重试&#x27;</span>);</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p><code>where</code> 里带上旧状态，只有状态没变时才更新。更新影响行数为 0，说明有人先改了，让前端刷新重来。这个做法不需要事务，适合云开发基础版。</p>
+<p>事务也可以，但 <code>verifyKey</code> 里留过一句注释：小程序云开发基础版不支持事务，所以那个函数用了两步更新。状态流转这块我倾向于条件更新，简单，够用。</p>
+<h2 id="通知和状态是绑在一起的"><a href="#通知和状态是绑在一起的" class="headerlink" title="通知和状态是绑在一起的"></a>通知和状态是绑在一起的</h2><p><code>createTask</code> 写完任务后，会异步调 <code>sendNotification</code> 给被指派的人写一条通知。<code>updateTask</code> 只在状态变成 <code>cancelled</code> 时通知。定时器负责两件事：任务开始前两小时提醒状态为 <code>confirmed</code> 的任务，以及把过期的 <code>in_progress</code> 任务自动完成。</p>
+<p>这里有个细节：提醒只扫 <code>confirmed</code>，不扫 <code>in_progress</code>。如果成员一直没点「开始」，但人已经去了，提醒照样会发；如果他点了「开始」，反而不会收到提醒。这个逻辑当时没想清楚，后来也没改，因为实际使用中大家一般不会提前点开始。</p>
+<p>订阅消息的限制、定时器的时间窗，这些放在 <a href="/2026/09/25/mp-cloudbase-pitfalls/" title="云开发踩坑：权限、订阅消息、定时器">云开发踩坑：权限、订阅消息、定时器</a> 里讲。状态机本身和通知机制是两件事，但它们的边界经常缠在一起，改一个要顺带看另一个。</p>
+<h2 id="现在回头看"><a href="#现在回头看" class="headerlink" title="现在回头看"></a>现在回头看</h2><p>要重写的排序大概是：</p>
+<p>第一，把转换表真正接进 <code>updateTask</code>，服务端校验合法状态流转。现在这张表只是注释级别的存在。</p>
+<p>第二，把「申请调整」的原因存下来。前端提交了 <code>adjustReason</code>，但 <code>updateTask</code> 的字段白名单里没有这个字段，更新时被直接丢掉了。主任只能看到任务回到 <code>pending</code>，看不到成员为什么申请调整。</p>
+<p>第三，把状态更新改成条件更新，处理并发。现在两个人同时操作，结果是随机的。</p>
+<p>第四，给通知加去重键。同一个任务、同一个用户、同一种类型，不应该重复写。</p>
+<p>这四条都不难，难的是当时没意识到它们是问题。第一版能跑起来，靠的是前端按钮藏得好和用户量小。用户一多、网络一慢，这些地方就会开始出毛病。</p>
+</article><div class="post-copyright"><div class="post-copyright__author"><span class="post-copyright-meta"><i class="fas fa-circle-user fa-fw"></i>文章作者: </span><span class="post-copyright-info"><a href="https://aidon-chen.github.io">aidon</a></span></div><div class="post-copyright__type"><span class="post-copyright-meta"><i class="fas fa-square-arrow-up-right fa-fw"></i>文章链接: </span><span class="post-copyright-info"><a href="https://aidon-chen.github.io/2026/09/05/mp-task-dispatch-state-machine/">https://aidon-chen.github.io/2026/09/05/mp-task-dispatch-state-machine/</a></span></div><div class="post-copyright__notice"><span class="post-copyright-meta"><i class="fas fa-circle-exclamation fa-fw"></i>版权声明: </span><span class="post-copyright-info">本博客所有文章除特别声明外，均采用 <a href="https://creativecommons.org/licenses/by-nc-sa/4.0/" target="_blank">CC BY-NC-SA 4.0</a> 许可协议。转载请注明来源 <a href="https://aidon-chen.github.io" target="_blank">aidon's blog</a>！</span></div></div><div class="tag_share"><div class="post-meta__tag-list"><a class="post-meta__tags" href="/tags/%E4%BA%91%E5%BC%80%E5%8F%91/">云开发</a><a class="post-meta__tags" href="/tags/%E4%BA%91%E6%95%B0%E6%8D%AE%E5%BA%93/">云数据库</a><a class="post-meta__tags" href="/tags/%E7%8A%B6%E6%80%81%E6%9C%BA/">状态机</a><a class="post-meta__tags" href="/tags/%E6%9D%83%E9%99%90%E8%AE%BE%E8%AE%A1/">权限设计</a></div><div class="post-share"><div class="social-share" data-image="/img/avatar.png" data-sites="facebook,x,wechat,weibo,qq"></div><link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/butterfly-extsrc@1.1.6/sharejs/dist/css/share.min.css" media="print" onload="this.media='all'"><script src="https://cdn.jsdelivr.net/npm/butterfly-extsrc@1.1.6/sharejs/dist/js/social-share.min.js" defer></script></div></div><nav class="pagination-post" id="pagination"><a class="pagination-related" href="/2026/09/12/mp-cloudbase-intro/" title="第一次用云开发，云函数、数据库、存储各管什么"><div class="cover" style="background: var(--default-bg-color)"></div><div class="info"><div class="info-1"><div class="info-item-1">上一篇</div><div class="info-item-2">第一次用云开发，云函数、数据库、存储各管什么</div></div><div class="info-2"><div class="info-item-1">任务派发小程序跑了两周之后，我才回头把云开发的概念理清楚。之前是照着文档抄，能跑就行；等到要加功能、要排查问题时，发现脑子里没有一张完整的图，经常不知道一个请求到底经过了哪些地方。 这篇写给和我一样第一次接触云开发的人。概念不多，但每个概念最好挂一个项目里的真实例子，不然很容易看完就忘。 云开发是什么简单说，微信把服务器、数据库、文件存储打包成了一个服务，你不用买机器、不用配域名、不用自己装数据库。小程序里调一个接口，代码就跑在微信的服务器上。 它和买云服务器的区别在于「谁负责运维」。买服务器，操作系统、运行时、数据库、备份、证书都要自己管；云开发把这些收走了，你只写函数和查询。它和云托管的区别在于「管到哪一层」：云托管还要你提供镜像或代码包，自己定端口和容器；云开发连容器都不需要，一个函数目录就是一个部署单元。 对这个项目来说，最实际的好处是登录。云函数里一行 cloud.getWXContext().OPENID 就能拿到当前用户的微信身份，不用自己发 token、存 session、写鉴权中间件。坏处也在这儿：整套东西长在微信里，离开微信就不好用。 云函数云函数就是一段放在...</div></div></div></a><a class="pagination-related" href="/2026/09/03/web-topic/" title="Web 技术框架概览"><div class="cover" style="background: var(--default-bg-color)"></div><div class="info text-right"><div class="info-1"><div class="info-item-1">下一篇</div><div class="info-item-2">Web 技术框架概览</div></div><div class="info-2"><div class="info-item-1">Web 技术框架概览现代 Web 开发中，前端框架帮助开发者以组件化的方式构建复杂界面，提升开发效率与可维护性。本文介绍当前最主流的几个 Web 前端框架，并进行横向对比与选型建议。 主流前端框架ReactReact 由 Meta（原 Facebook）开发，是目前生态最庞大的前端框架。它基于 组件 + 单向数据流 的核心理念，配合虚拟 DOM 实现高效的界面更新。  核心特点：函数式组件、Hooks、JSX 语法 适用场景：大型中后台系统、跨平台应用（React Native） 生态：Redux&#x2F;Zustand（状态管理）、Next.js（服务端渲染）  VueVue 由尤雨溪开发，以渐进式框架著称，上手门槛低，单文件组件（SFC）写法直观。  核心特点：响应式数据绑定、模板语法、组合式 API（Composition API） 适用场景：中后台管理界面、中小型项目、需要快速上手的场景 生态：Pinia（状态管理）、Nuxt.js（服务端渲染）、Element Plus（UI 组件库）  AngularAngular 是谷歌维护的重量级框架，提供开箱即用的完整解决方案...</div></div></div></a></nav><div class="relatedPosts"><div class="headline"><i class="fas fa-thumbs-up fa-fw"></i><span>相关推荐</span></div><div class="relatedPosts-list"><a class="pagination-related" href="/2026/09/12/mp-cloudbase-intro/" title="第一次用云开发，云函数、数据库、存储各管什么"><div class="cover" style="background: var(--default-bg-color)"></div><div class="info text-center"><div class="info-1"><div class="info-item-1"><i class="far fa-calendar-alt fa-fw"></i> 2026-09-12</div><div class="info-item-2">第一次用云开发，云函数、数据库、存储各管什么</div></div><div class="info-2"><div class="info-item-1">任务派发小程序跑了两周之后，我才回头把云开发的概念理清楚。之前是照着文档抄，能跑就行；等到要加功能、要排查问题时，发现脑子里没有一张完整的图，经常不知道一个请求到底经过了哪些地方。 这篇写给和我一样第一次接触云开发的人。概念不多，但每个概念最好挂一个项目里的真实例子，不然很容易看完就忘。 云开发是什么简单说，微信把服务器、数据库、文件存储打包成了一个服务，你不用买机器、不用配域名、不用自己装数据库。小程序里调一个接口，代码就跑在微信的服务器上。 它和买云服务器的区别在于「谁负责运维」。买服务器，操作系统、运行时、数据库、备份、证书都要自己管；云开发把这些收走了，你只写函数和查询。它和云托管的区别在于「管到哪一层」：云托管还要你提供镜像或代码包，自己定端口和容器；云开发连容器都不需要，一个函数目录就是一个部署单元。 对这个项目来说，最实际的好处是登录。云函数里一行 cloud.getWXContext().OPENID 就能拿到当前用户的微信身份，不用自己发 token、存 session、写鉴权中间件。坏处也在这儿：整套东西长在微信里，离开微信就不好用。 云函数云函数就是一段放在...</div></div></div></a><a class="pagination-related" href="/2026/08/27/mp-task-dispatch-why/" title="视觉中心的任务老是堆在群里，我干脆写了个小程序"><div class="cover" style="background: var(--default-bg-color)"></div><div class="info text-center"><div class="info-1"><div class="info-item-1"><i class="far fa-calendar-alt fa-fw"></i> 2026-08-27</div><div class="info-item-2">视觉中心的任务老是堆在群里，我干脆写了个小程序</div></div><div class="info-2"><div class="info-item-1">视觉中心的群里每天都有这种消息：  周三下午有人有空吗，思学楼有个会议要拍。  然后下面两三个人回「我」「我可以」。看起来很热闹，问题是过两天没人记得最后是谁去的；或者两个人都以为对方会去，到了现场发现没人。主任那边更难受，谁手上还有活、哪条任务卡住了，全靠翻聊天记录。 我在中心待了一段时间，觉得这事不该一直这样。六月底开始动手，做了一个任务派发的小程序。 我想要的其实就四件事第一，任务能发出去，指派到具体的人，不是往群里一扔等认领。 第二，被指派的人能确认。确认这个动作很重要，它把「我看到了」和「我会去」分开了。 第三，状态看得见。待确认、已确认、进行中、已完成，至少主任打开列表就知道哪条卡住了。 第四，交付有记录。谁做的、什么时候做完的，期末统计稿分的时候不用再翻群。 这四件事之外的，都是后来慢慢加的。 需求是怎么收敛的一开始我列了一长串：任务派发、值班表、机位管理、统计报表、新闻匹配、导出、评分、任务模板、随机选人。列完发现，如果全做，这个暑假就没了。 于是拿一张纸，按「没有它，第一期能不能用」划了一遍。 留下的：登录和角色、任务创建与指派、任务状态、人员状态、值班表、机位...</div></div></div></a><a class="pagination-related" href="/2026/10/20/mp-deploy-overview/" title="小程序从写完到能让人用，中间要过哪几道关"><div class="cover" style="background: var(--default-bg-color)"></div><div class="info text-center"><div class="info-1"><div class="info-item-1"><i class="far fa-calendar-alt fa-fw"></i> 2026-10-20</div><div class="info-item-2">小程序从写完到能让人用，中间要过哪几道关</div></div><div class="info-2"><div class="info-item-1">做完两个小程序项目之后，我发现“写完”和“能让人用”之间隔着的不是一点代码，而是一串很容易被低估的事。第一个项目用云开发，第二个用云托管，两条路都走过一遍，这篇把部署这件事拆开讲清楚，给同样一个人做项目的人参考。 部署到底包含什么代码在开发者工具里跑通，只是本地环境成立。要让别人也能用，至少要同时满足这些条件：    部分 要解决的问题    小程序包 体验版、审核、正式版，缺一个用户都打不开   后端服务 接口部署在公网，能稳定运行，挂了能重启   数据库 初始化、账号权限、备份，数据丢了没法补救   域名与备案 小程序请求域名、支付回调域名，国内服务器还要备案   HTTPS 小程序和支付都要求安全连接，证书过期会直接不可用   审核资料 主体、类目、隐私协议，填错会被驳回   任何一项没弄好，用户看到的就是“打不开”“加载失败”或者“系统异常”。而这些错误在本地都不会出现。 两条路：云开发和云托管微信生态里常见的两种后端放法，差别不在语言，而在“谁管运行环境”。 云开发把后端拆成云函数、云数据库、云存储。不用买服务器，不用配 Nginx，不用管证书，登录态直接拿 openi...</div></div></div></a><a class="pagination-related" href="/2026/09/25/mp-cloudbase-pitfalls/" title="云开发踩坑：权限、订阅消息、定时器"><div class="cover" style="background: var(--default-bg-color)"></div><div class="info text-center"><div class="info-1"><div class="info-item-1"><i class="far fa-calendar-alt fa-fw"></i> 2026-09-25</div><div class="info-item-2">云开发踩坑：权限、订阅消息、定时器</div></div><div class="info-2"><div class="info-item-1">这篇不铺垫，直接写踩过的坑。每个坑都是实际撞上、改过代码的，不是从文档里抄的注意事项。 权限：前端直写看起来很美云开发的数据库权限规则有四种模式，配起来很简单。问题是它只能回答「这条记录是不是你创建的」，回答不了「你是不是主任」「这条任务能不能改」。 举个例子。任务由主任创建，指派给成员。如果用「仅创建者可读写」，成员读不到这条任务，因为记录是主任创建的；如果用「所有用户可读」，全中心的人都能看到别人的任务；如果放开写权限，任何人都能把任务状态改成已完成。规则里没有「被指派人可以改状态但不能改标题」这一档。 所以这个项目最后所有写操作都放在云函数里。云函数用的是管理员权限，不受数据库权限规则限制，判断逻辑全在代码里。前端只调 wx.cloud.callFunction，不直接碰 db.collection。 但有一个地方没守规矩。app.js 里刷新未读红点时，直接查了数据库： 1234const db = wx.cloud.database();const res = await db.collection(&#x27;notifications&#x27;)  .where(...</div></div></div></a></div></div></div><div class="aside-content" id="aside-content"><div class="card-widget card-info text-center"><div class="avatar-img"><img src="data:image/gif;base64,R0lGODlhAQABAIAAAAAAAP///yH5BAEAAAAALAAAAAABAAEAAAIBRAA7" data-lazy-src="/img/avatar.png" onerror="this.onerror=null;this.src='/img/friend_404.gif'" alt="avatar"/></div><div class="author-info-name">aidon</div><div class="author-info-description"></div><div class="site-data"><a href="/archives/"><div class="headline">文章</div><div class="length-num">24</div></a><a href="/tags/"><div class="headline">标签</div><div class="length-num">70</div></a><a href="/categories/"><div class="headline">分类</div><div class="length-num">16</div></a></div><a id="card-info-btn" target="_blank" rel="noopener" href="https://github.com/xxxxxx"><i class="fab fa-github"></i><span>Follow Me</span></a><div class="card-info-social-icons"><a class="social-icon" href="https://github.com/aidon-chen" target="_blank" title="fab fa-github"><i class="github"></i></a></div></div><div class="card-widget card-announcement"><div class="item-headline"><i class="fas fa-bullhorn fa-shake"></i><span>公告</span></div><div class="announcement_content">This is my Blog</div></div><div class="sticky_layout"><div class="card-widget" id="card-toc"><div class="item-headline"><i class="fas fa-stream"></i><span>目录</span><span class="toc-percentage"></span></div><div class="toc-content"><ol class="toc"><li class="toc-item toc-level-2"><a class="toc-link" href="#%E4%BA%94%E4%B8%AA%E7%8A%B6%E6%80%81"><span class="toc-number">1.</span> <span class="toc-text">五个状态</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#%E4%B8%BA%E4%BB%80%E4%B9%88%E4%B8%8D%E7%94%A8%E4%B8%80%E4%B8%AA-isDone"><span class="toc-number">2.</span> <span class="toc-text">为什么不用一个 isDone</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#%E8%B0%81%E8%83%BD%E6%94%B9"><span class="toc-number">3.</span> <span class="toc-text">谁能改</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#%E9%82%A3%E5%BC%A0%E6%B2%A1%E8%A2%AB%E7%94%A8%E4%B8%8A%E7%9A%84%E8%BD%AC%E6%8D%A2%E8%A1%A8"><span class="toc-number">4.</span> <span class="toc-text">那张没被用上的转换表</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#%E6%95%B0%E6%8D%AE%E5%BA%93%E6%9D%83%E9%99%90%E8%A7%84%E5%88%99%E7%AE%A1%E4%B8%8D%E4%BA%86%E4%B8%9A%E5%8A%A1"><span class="toc-number">5.</span> <span class="toc-text">数据库权限规则管不了业务</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#%E4%B8%A4%E4%B8%AA%E4%BA%BA%E5%90%8C%E6%97%B6%E7%82%B9%E4%BC%9A%E6%80%8E%E6%A0%B7"><span class="toc-number">6.</span> <span class="toc-text">两个人同时点会怎样</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#%E9%80%9A%E7%9F%A5%E5%92%8C%E7%8A%B6%E6%80%81%E6%98%AF%E7%BB%91%E5%9C%A8%E4%B8%80%E8%B5%B7%E7%9A%84"><span class="toc-number">7.</span> <span class="toc-text">通知和状态是绑在一起的</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#%E7%8E%B0%E5%9C%A8%E5%9B%9E%E5%A4%B4%E7%9C%8B"><span class="toc-number">8.</span> <span class="toc-text">现在回头看</span></a></li></ol></div></div><div class="card-widget card-recent-post"><div class="item-headline"><i class="fas fa-history"></i><span>最新文章</span></div><div class="aside-list"><div class="aside-list-item no-cover"><div class="content"><a class="title" href="/2026/11/14/lakes-cloudrun-deploy/" title="湖里 Lakes：搬到微信云托管，部署和踩坑">湖里 Lakes：搬到微信云托管，部署和踩坑</a><time datetime="2026-11-14T13:00:00.000Z" title="发表于 2026-11-14 21:00:00">2026-11-14</time></div></div><div class="aside-list-item no-cover"><div class="content"><a class="title" href="/2026/11/14/study-workbench-service-ai/" title="给复习页接上 SQLite 和 AI 评分：Key 不能进浏览器">给复习页接上 SQLite 和 AI 评分：Key 不能进浏览器</a><time datetime="2026-11-14T13:00:00.000Z" title="发表于 2026-11-14 21:00:00">2026-11-14</time></div></div><div class="aside-list-item no-cover"><div class="content"><a class="title" href="/2026/11/14/study-workbench-frontend/" title="给自己搭了个课程复习平台">给自己搭了个课程复习平台</a><time datetime="2026-11-14T12:00:00.000Z" title="发表于 2026-11-14 20:00:00">2026-11-14</time></div></div><div class="aside-list-item no-cover"><div class="content"><a class="title" href="/2026/11/14/mindmap-editor-tool/" title="161 个测试节点的导图工具：simple-mind-map 加四个插件">161 个测试节点的导图工具：simple-mind-map 加四个插件</a><time datetime="2026-11-14T08:40:00.000Z" title="发表于 2026-11-14 16:40:00">2026-11-14</time></div></div><div class="aside-list-item no-cover"><div class="content"><a class="title" href="/2026/11/04/teci-iteration-workflow/" title="打完 28 轮迭代，我留下的几条工程习惯">打完 28 轮迭代，我留下的几条工程习惯</a><time datetime="2026-11-04T13:30:00.000Z" title="发表于 2026-11-04 21:30:00">2026-11-04</time></div></div></div></div></div></div></main><footer id="footer"><div class="footer-other"><div class="footer-copyright"><span class="copyright">&copy;&nbsp;2026 By aidon</span><span class="framework-info"><span>框架 </span><a target="_blank" rel="noopener" href="https://hexo.io">Hexo 7.3.0</a><span class="footer-separator">|</span><span>主题 </span><a target="_blank" rel="noopener" href="https://github.com/jerryc127/hexo-theme-butterfly">Butterfly 5.6.0</a></span></div></div></footer></div><div id="rightside"><div id="rightside-config-hide"><button id="readmode" type="button" title="阅读模式"><i class="fas fa-book-open"></i></button><button id="darkmode" type="button" title="日间和夜间模式切换"><i class="fas fa-adjust"></i></button><button id="hide-aside-btn" type="button" title="单栏和双栏切换"><i class="fas fa-arrows-alt-h"></i></button></div><div id="rightside-config-show"><button id="rightside-config" type="button" title="设置"><i class="fas fa-cog fa-spin"></i></button><button class="close" id="mobile-toc-button" type="button" title="目录"><i class="fas fa-list-ul"></i></button><button id="go-up" type="button" title="回到顶部"><span class="scroll-percent"></span><i class="fas fa-arrow-up"></i></button></div></div><div><script src="/js/utils.js?v=5.6.0"></script><script src="/js/main.js?v=5.6.0"></script><script src="https://cdn.jsdelivr.net/npm/vanilla-lazyload@19.1.3/dist/lazyload.iife.min.js"></script><div class="js-pjax"><script>(() => {
+  const parseViewBox = viewBox => {
+    if (!viewBox) return null
+    const parts = viewBox.trim().split(/[\s,]+/).map(n => Number(n))
+    if (parts.length !== 4 || parts.some(n => Number.isNaN(n))) return null
+    return parts
+  }
+
+  const getSvgViewBox = svg => {
+    const attr = parseViewBox(svg.getAttribute('viewBox'))
+    if (attr) return attr
+
+    // Fallback: use bbox to build a viewBox
+    try {
+      const bbox = svg.getBBox()
+      if (bbox && bbox.width && bbox.height) return [bbox.x, bbox.y, bbox.width, bbox.height]
+    } catch (e) {
+      // getBBox may fail on some edge cases; ignore
+    }
+
+    const w = Number(svg.getAttribute('width')) || 0
+    const h = Number(svg.getAttribute('height')) || 0
+    if (w > 0 && h > 0) return [0, 0, w, h]
+    return [0, 0, 100, 100]
+  }
+
+  const setSvgViewBox = (svg, vb) => {
+    svg.setAttribute('viewBox', `${vb[0]} ${vb[1]} ${vb[2]} ${vb[3]}`)
+  }
+
+  const clamp = (v, min, max) => Math.max(min, Math.min(max, v))
+
+  const openSvgInNewTab = ({ source, initViewBox }) => {
+    const getClonedSvg = () => {
+      if (typeof source === 'string') {
+        const template = document.createElement('template')
+        template.innerHTML = source.trim()
+        const svg = template.content.querySelector('svg')
+        return svg ? svg.cloneNode(true) : null
+      }
+      if (source && typeof source.cloneNode === 'function') {
+        return source.cloneNode(true)
+      }
+      return null
+    }
+
+    const clone = getClonedSvg()
+    if (!clone) return
+    if (initViewBox && initViewBox.length === 4) {
+      clone.setAttribute('viewBox', initViewBox.join(' '))
+    }
+    if (!clone.getAttribute('xmlns')) clone.setAttribute('xmlns', 'http://www.w3.org/2000/svg')
+    if (!clone.getAttribute('xmlns:xlink') && clone.innerHTML.includes('xlink:')) {
+      clone.setAttribute('xmlns:xlink', 'http://www.w3.org/1999/xlink')
+    }
+    // inject background to match current theme
+    const isDark = document.documentElement.getAttribute('data-theme') === 'dark'
+    const bg = getComputedStyle(document.body).backgroundColor || (isDark ? '#1e1e1e' : '#ffffff')
+    if (!clone.style.background) clone.style.background = bg
+
+    const serializer = new XMLSerializer()
+    const svgSource = serializer.serializeToString(clone)
+    const htmlSource = `<!doctype html><html><head><meta charset="utf-8" />
+      <style>
+        html, body { width: 100%; height: 100%; margin: 0; display: flex; align-items: center; justify-content: center; background: ${bg}; }
+        svg { max-width: 100%; max-height: 100%; height: auto; width: auto; }
+      </style>
+      </head><body>${svgSource}</body></html>`
+    const blob = new Blob([htmlSource], { type: 'text/html;charset=utf-8' })
+    const url = URL.createObjectURL(blob)
+    window.open(url, '_blank', 'noopener')
+
+    setTimeout(() => URL.revokeObjectURL(url), 5000)
+  }
+
+  const attachMermaidViewerButton = wrap => {
+    let btn = wrap.querySelector('.mermaid-open-btn')
+    if (!btn) {
+      btn = document.createElement('button')
+      btn.type = 'button'
+      btn.className = 'mermaid-open-btn'
+      wrap.appendChild(btn)
+    }
+
+    btn.innerHTML = '<i class="fa fa-search fa-fw" aria-hidden="true"></i>'
+
+    if (!btn.__mermaidViewerBound) {
+      btn.addEventListener('click', e => {
+        e.preventDefault()
+        e.stopPropagation()
+        const svg = wrap.__mermaidOriginalSvg || wrap.querySelector('svg')
+        if (!svg) return
+        const initViewBox = wrap.__mermaidInitViewBox
+        openSvgInNewTab({ source: svg, initViewBox })
+      })
+      btn.__mermaidViewerBound = true
+    }
+  }
+
+  // Zoom around a point (px, py) in the SVG viewport (in viewBox coordinates)
+  const zoomAtPoint = (vb, factor, px, py) => {
+    const w = vb[2] * factor
+    const h = vb[3] * factor
+    const nx = px - (px - vb[0]) * factor
+    const ny = py - (py - vb[1]) * factor
+    return [nx, ny, w, h]
+  }
+
+  const initMermaidGestures = wrap => {
+    // Clean up previous event listeners and pending frames
+    if (wrap.__mermaidAbortController) {
+      wrap.__mermaidAbortController.abort()
+      if (wrap.__mermaidRafId) cancelAnimationFrame(wrap.__mermaidRafId)
+    }
+    const ac = new AbortController()
+    wrap.__mermaidAbortController = ac
+    const svg = wrap.querySelector('svg')
+    if (!svg) return
+
+    // Ensure viewBox exists so gestures always work
+    const initVb = getSvgViewBox(svg)
+    wrap.__mermaidInitViewBox = initVb
+    wrap.__mermaidCurViewBox = initVb.slice()
+    setSvgViewBox(svg, initVb)
+    // Disable default gestures to prevent scroll chaining and pinch-zoom penetration in Chrome
+    svg.style.touchAction = 'none'
+
+    // Cache BoundingClientRect, throttled on scroll to reduce reflow
+    let cachedRect = svg.getBoundingClientRect()
+    let rectDirty = false
+    const markRectDirty = () => { rectDirty = true }
+    window.addEventListener('resize', markRectDirty, { signal: ac.signal })
+    window.addEventListener('scroll', markRectDirty, { signal: ac.signal, capture: true })
+    const getRect = () => {
+      if (rectDirty) {
+        cachedRect = svg.getBoundingClientRect()
+        rectDirty = false
+      }
+      return cachedRect
+    }
+
+    // Precompute clamp bounds from initial viewBox
+    const minW = initVb[2] * 0.1
+    const maxW = initVb[2] * 10
+    const minH = initVb[3] * 0.1
+    const maxH = initVb[3] * 10
+    const clampVb = vb => {
+      const out = vb.slice()
+      out[2] = clamp(out[2], minW, maxW)
+      out[3] = clamp(out[3], minH, maxH)
+      return out
+    }
+
+    // Throttle DOM updates using requestAnimationFrame
+    let pendingVb = null
+    let rafId = null
+    const applyVb = () => {
+      if (pendingVb) {
+        wrap.__mermaidCurViewBox = pendingVb
+        setSvgViewBox(svg, pendingVb)
+        pendingVb = null
+      }
+      rafId = null
+      wrap.__mermaidRafId = null
+    }
+    const setCurVb = vb => {
+      pendingVb = clampVb(vb)
+      if (!rafId) {
+        rafId = requestAnimationFrame(applyVb)
+        wrap.__mermaidRafId = rafId
+      }
+    }
+
+    const state = {
+      pointers: new Map(),
+      startVb: null,
+      startDist: 0,
+      lastPointerX: 0,
+      lastPointerY: 0
+    }
+
+    const onPointerDown = e => {
+      if (e.pointerType === 'mouse' && e.button !== 0) return
+      svg.setPointerCapture(e.pointerId)
+      const curVb = wrap.__mermaidCurViewBox
+      state.pointers.set(e.pointerId, { x: e.clientX, y: e.clientY })
+      if (state.pointers.size === 1) {
+        state.startVb = curVb.slice()
+        state.lastPointerX = e.clientX
+        state.lastPointerY = e.clientY
+      } else if (state.pointers.size === 2) {
+        const pts = [...state.pointers.values()]
+        const dx = pts[0].x - pts[1].x
+        const dy = pts[0].y - pts[1].y
+        state.startDist = Math.hypot(dx, dy)
+        state.startVb = curVb.slice()
+      }
+    }
+
+    const onPointerMove = e => {
+      if (!state.pointers.has(e.pointerId)) return
+      state.pointers.set(e.pointerId, { x: e.clientX, y: e.clientY })
+      const curVb = wrap.__mermaidCurViewBox
+      const rect = getRect()
+      if (state.pointers.size === 1 && state.startVb) {
+        const p = state.pointers.values().next().value
+        const dxClient = p.x - state.lastPointerX
+        const dyClient = p.y - state.lastPointerY
+        state.lastPointerX = p.x
+        state.lastPointerY = p.y
+        const dx = dxClient * (curVb[2] / rect.width)
+        const dy = dyClient * (curVb[3] / rect.height)
+        setCurVb([curVb[0] - dx, curVb[1] - dy, curVb[2], curVb[3]])
+        return
+      }
+      if (state.pointers.size === 2 && state.startVb && state.startDist > 0) {
+        const pts = [...state.pointers.values()]
+        const dx = pts[0].x - pts[1].x
+        const dy = pts[0].y - pts[1].y
+        const dist = Math.hypot(dx, dy)
+        if (!dist) return
+        const factor = state.startDist / dist
+        const cx = (pts[0].x + pts[1].x) / 2
+        const cy = (pts[0].y + pts[1].y) / 2
+        const px = curVb[0] + (cx - rect.left) * (curVb[2] / rect.width)
+        const py = curVb[1] + (cy - rect.top) * (curVb[3] / rect.height)
+        setCurVb(zoomAtPoint(state.startVb, factor, px, py))
+      }
+    }
+
+    const onPointerUpOrCancel = e => {
+      // Release PointerCapture to avoid event capture anomalies
+      if (svg.hasPointerCapture && svg.hasPointerCapture(e.pointerId)) {
+        svg.releasePointerCapture(e.pointerId)
+      }
+      state.pointers.delete(e.pointerId)
+      if (state.pointers.size === 0) {
+        state.startVb = null
+        state.startDist = 0
+      } else if (state.pointers.size === 1) {
+        const p = state.pointers.values().next().value
+        state.lastPointerX = p.x
+        state.lastPointerY = p.y
+      }
+    }
+
+    const onWheel = e => {
+      // Prevent event bubbling from triggering external scroll
+      e.preventDefault()
+      e.stopPropagation()
+      // Normalize deltaY across deltaMode (Chrome uses pixels, Safari uses lines)
+      let delta = e.deltaY
+      if (e.deltaMode === 1) delta *= 16
+      else if (e.deltaMode === 2) delta *= 400
+
+      // Continuous zoom factor: smoother than fixed 1.1/0.9 steps
+      const zoomFactor = Math.pow(1.001, delta)
+
+      const curVb = wrap.__mermaidCurViewBox
+      const rect = getRect()
+      const px = curVb[0] + (e.clientX - rect.left) * (curVb[2] / rect.width)
+      const py = curVb[1] + (e.clientY - rect.top) * (curVb[3] / rect.height)
+      setCurVb(zoomAtPoint(curVb, zoomFactor, px, py))
+    }
+
+    const onDblClick = () => {
+      const init = wrap.__mermaidInitViewBox
+      if (init) setCurVb(init)
+    }
+
+    svg.addEventListener('pointerdown', onPointerDown, { signal: ac.signal })
+    svg.addEventListener('pointermove', onPointerMove, { signal: ac.signal })
+    svg.addEventListener('pointerup', onPointerUpOrCancel, { signal: ac.signal })
+    svg.addEventListener('pointercancel', onPointerUpOrCancel, { signal: ac.signal })
+    svg.addEventListener('wheel', onWheel, { passive: false, signal: ac.signal })
+    svg.addEventListener('dblclick', onDblClick, { signal: ac.signal })
+  }
+
+  const runMermaid = ele => {
+    window.loadMermaid = true
+    const theme = document.documentElement.getAttribute('data-theme') === 'dark' ? 'dark' : 'default'
+    ele.forEach((item, index) => {
+      const mermaidSrc = item.firstElementChild
+      // Clean up event listeners before removing old SVG
+      if (item.__mermaidAbortController) {
+        item.__mermaidAbortController.abort()
+      }
+      const oldSvg = item.querySelector('svg')
+      if (oldSvg) oldSvg.remove()
+      let config = {}
+      try {
+        config = mermaidSrc.dataset.config ? JSON.parse(mermaidSrc.dataset.config) : {}
+      } catch (e) {
+        console.warn('[mermaid] failed to parse dataset.config:', e)
+      }
+      if (!config.theme) {
+        config.theme = theme
+      }
+      const mermaidThemeConfig = `%%{init: ${JSON.stringify(config)}}%%\n`
+      const mermaidID = `mermaid-${index}`
+      const mermaidDefinition = mermaidThemeConfig + mermaidSrc.textContent
+
+      const renderMermaid = svg => {
+        mermaidSrc.insertAdjacentHTML('afterend', svg)
+        if (true) initMermaidGestures(item)
+        item.__mermaidOriginalSvg = svg
+        if (true) attachMermaidViewerButton(item)
+      }
+
+      const handleError = err => {
+        console.error(`[mermaid] render failed for block #${index}:`, err)
+        const errorEl = document.createElement('div')
+        errorEl.className = 'mermaid-error'
+        errorEl.textContent = `Mermaid render error: ${err.message || err}`
+        mermaidSrc.insertAdjacentElement('afterend', errorEl)
+      }
+
+      try {
+        const renderFn = mermaid.render(mermaidID, mermaidDefinition)
+        // mermaid v9 and v10 compatibility
+        if (typeof renderFn === 'string') {
+          renderMermaid(renderFn)
+        } else {
+          renderFn.then(({ svg }) => renderMermaid(svg)).catch(handleError)
+        }
+      } catch (err) {
+        handleError(err)
+      }
+    })
+  }
+
+  const codeToMermaid = $article => {
+    const codeMermaidEle = $article.querySelectorAll('pre > code.mermaid')
+    if (codeMermaidEle.length === 0) return
+
+    codeMermaidEle.forEach(ele => {
+      const preEle = document.createElement('pre')
+      preEle.className = 'mermaid-src'
+      preEle.hidden = true
+      preEle.textContent = ele.textContent
+      const newEle = document.createElement('div')
+      newEle.className = 'mermaid-wrap'
+      newEle.appendChild(preEle)
+      ele.parentNode.replaceWith(newEle)
+    })
+  }
+
+  const loadMermaid = () => {
+    const $article = document.getElementById('article-container')
+    if (!$article) return
+
+    if (false) codeToMermaid($article)
+    const $mermaid = $article.querySelectorAll('.mermaid-wrap')
+    if ($mermaid.length === 0) return
+
+    const runMermaidFn = () => runMermaid($mermaid)
+    btf.addGlobalFn('themeChange', runMermaidFn, 'mermaid')
+    window.loadMermaid ? runMermaidFn() : btf.getScript('https://cdn.jsdelivr.net/npm/mermaid@11.16.0/dist/mermaid.min.js').then(runMermaidFn)
+  }
+
+  btf.addGlobalFn('encrypt', loadMermaid, 'mermaid')
+  window.pjax ? loadMermaid() : document.addEventListener('DOMContentLoaded', loadMermaid)
+})()</script></div><script async data-pjax src="//busuanzi.ibruce.info/busuanzi/2.3/busuanzi.pure.mini.js"></script></div></body></html>

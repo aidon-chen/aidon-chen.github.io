@@ -1,0 +1,712 @@
+<!DOCTYPE html><html lang="zh-CN" data-theme="light"><head><meta charset="UTF-8"><meta http-equiv="X-UA-Compatible" content="IE=edge"><meta name="viewport" content="width=device-width, initial-scale=1.0,viewport-fit=cover"><title>湖里 Lakes：搬到微信云托管，部署和踩坑 | aidon's blog</title><meta name="author" content="aidon"><meta name="copyright" content="aidon"><meta name="format-detection" content="telephone=no"><meta name="theme-color" content="#ffffff"><meta name="description" content="不想买服务器，把 Spring Boot 后端和三个前端静态包塞进微信云托管，记录容器改造、环境变量、支付回调和踩过的坑。">
+<meta property="og:type" content="article">
+<meta property="og:title" content="湖里 Lakes：搬到微信云托管，部署和踩坑">
+<meta property="og:url" content="https://aidon-chen.github.io/2026/11/14/lakes-cloudrun-deploy/index.html">
+<meta property="og:site_name" content="aidon&#39;s blog">
+<meta property="og:description" content="不想买服务器，把 Spring Boot 后端和三个前端静态包塞进微信云托管，记录容器改造、环境变量、支付回调和踩过的坑。">
+<meta property="og:locale" content="zh_CN">
+<meta property="og:image" content="https://aidon-chen.github.io/img/avatar.png">
+<meta property="article:published_time" content="2026-11-14T13:00:00.000Z">
+<meta property="article:modified_time" content="2026-11-14T07:44:10.849Z">
+<meta property="article:author" content="aidon">
+<meta property="article:tag" content="踩坑">
+<meta property="article:tag" content="微信云托管">
+<meta property="article:tag" content="Docker">
+<meta property="article:tag" content="部署">
+<meta name="twitter:card" content="summary">
+<meta name="twitter:image" content="https://aidon-chen.github.io/img/avatar.png"><script type="application/ld+json">{
+  "@context": "https://schema.org",
+  "@type": "BlogPosting",
+  "headline": "湖里 Lakes：搬到微信云托管，部署和踩坑",
+  "url": "https://aidon-chen.github.io/2026/11/14/lakes-cloudrun-deploy/",
+  "image": "https://aidon-chen.github.io/img/avatar.png",
+  "datePublished": "2026-11-14T13:00:00.000Z",
+  "dateModified": "2026-11-14T07:44:10.849Z",
+  "author": [
+    {
+      "@type": "Person",
+      "name": "aidon",
+      "url": "https://aidon-chen.github.io"
+    }
+  ]
+}</script><link rel="shortcut icon" href="/img/favicon.ico"><link rel="canonical" href="https://aidon-chen.github.io/2026/11/14/lakes-cloudrun-deploy/index.html"><link rel="preconnect" href="//cdn.jsdelivr.net"/><link rel="preconnect" href="//busuanzi.ibruce.info"/><link rel="stylesheet" href="/css/index.css?v=5.6.0"><link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@fortawesome/fontawesome-free@7.3.1/css/all.min.css"><script>
+    (() => {
+      
+    const saveToLocal = {
+      set: (key, value, ttl) => {
+        const data = { value }
+
+        if (ttl != null) {
+          data.expiry = Date.now() + ttl * 86400000
+        }
+
+        localStorage.setItem(key, JSON.stringify(data))
+      },
+      get: key => {
+        const itemStr = localStorage.getItem(key)
+        if (!itemStr) return
+
+        try {
+          const data = JSON.parse(itemStr)
+
+          if (data.expiry && Date.now() > data.expiry) {
+            localStorage.removeItem(key)
+            return
+          }
+
+          return data.value
+        } catch {
+          localStorage.removeItem(key)
+        }
+      }
+    }
+
+    const scriptCache = new Map()
+    const cssCache = new Map()
+    window.btf = {
+      saveToLocal,
+      getScript: (url, attr = {}) => {
+        if (scriptCache.has(url)) {
+          return scriptCache.get(url)
+        }
+
+        const promise = new Promise((resolve, reject) => {
+          const script = document.createElement('script')
+
+          script.src = url
+          script.async = true
+
+          for (const key in attr) {
+            script.setAttribute(key, attr[key])
+          }
+
+          script.onload = resolve
+          script.onerror = reject
+
+          document.head.appendChild(script)
+        })
+
+        scriptCache.set(url, promise)
+
+        return promise
+      },
+      getCSS: (url, id) => {
+        if (cssCache.has(url)) {
+          return cssCache.get(url)
+        }
+
+        const promise = new Promise((resolve, reject) => {
+          const link = document.createElement('link')
+
+          link.rel = 'stylesheet'
+          link.href = url
+
+          if (id) {
+            link.id = id
+          }
+
+          link.onload = resolve
+          link.onerror = reject
+
+          document.head.appendChild(link)
+        })
+
+        cssCache.set(url, promise)
+
+        return promise
+      },
+      addGlobalFn: (key, fn, name = false, parent = window) => {
+        if (!false && key.startsWith('pjax')) return
+        const globalFn = parent.globalFn || {}
+        globalFn[key] = globalFn[key] || {}
+        globalFn[key][name || Object.keys(globalFn[key]).length] = fn
+        parent.globalFn = globalFn
+      }
+    }
+  
+      
+      const metaThemeColor = document.querySelector('meta[name="theme-color"]')
+      const activateDarkMode = () => {
+        document.documentElement.dataset.theme = 'dark'
+        if (metaThemeColor !== null) {
+          metaThemeColor.setAttribute('content', '#0d0d0d')
+        }
+      }
+      const activateLightMode = () => {
+        document.documentElement.dataset.theme = 'light'
+        if (metaThemeColor !== null) {
+          metaThemeColor.setAttribute('content', '#ffffff')
+        }
+      }
+
+      btf.activateDarkMode = activateDarkMode
+      btf.activateLightMode = activateLightMode
+
+      const theme = saveToLocal.get('theme')
+    
+          theme === 'dark' ? activateDarkMode() : theme === 'light' ? activateLightMode() : null
+        
+      
+      const asideStatus = saveToLocal.get('aside-status')
+      if (asideStatus !== undefined) {
+        document.documentElement.classList.toggle('hide-aside', asideStatus === 'hide')
+      }
+    
+      
+    const detectApple = () => {
+      if (/iPad|iPhone|iPod|Macintosh/.test(navigator.userAgent)) {
+        document.documentElement.classList.add('apple')
+      }
+    }
+    detectApple()
+  
+    })()
+  </script><script>const GLOBAL_CONFIG = {
+  root: '/',
+  algolia: undefined,
+  localSearch: undefined,
+  translate: undefined,
+  highlight: {"plugin":"highlight.js","highlightCopy":true,"highlightLang":true,"highlightHeightLimit":false,"highlightFullpage":false,"highlightMacStyle":false},
+  copy: {
+    success: '复制成功',
+    error: '复制失败',
+    noSupport: '浏览器不支持'
+  },
+  relativeDate: {
+    homepage: false,
+    post: false
+  },
+  runtime: '',
+  dateSuffix: {
+    just: '刚刚',
+    min: '分钟前',
+    hour: '小时前',
+    day: '天前',
+    month: '个月前'
+  },
+  copyright: undefined,
+  lightbox: 'null',
+  Snackbar: undefined,
+  infinitegrid: {
+    js: 'https://cdn.jsdelivr.net/npm/@egjs/infinitegrid@4.13.0/dist/infinitegrid.min.js',
+    buttonText: '加载更多'
+  },
+  isPhotoFigcaption: false,
+  islazyloadPlugin: true,
+  isAnchor: false,
+  percent: {
+    toc: true,
+    rightside: false,
+  },
+  autoDarkmode: false
+}</script><script id="config-diff">var GLOBAL_CONFIG_SITE = {
+  title: '湖里 Lakes：搬到微信云托管，部署和踩坑',
+  isHighlightShrink: false,
+  isToc: true,
+  pageType: 'post'
+}</script><meta name="generator" content="Hexo 7.3.0"></head><body><div id="sidebar"><div id="menu-mask"></div><div id="sidebar-menus"><div class="avatar-img text-center"><img src="data:image/gif;base64,R0lGODlhAQABAIAAAAAAAP///yH5BAEAAAAALAAAAAABAAEAAAIBRAA7" data-lazy-src="/img/avatar.png" onerror="this.onerror=null;this.src='/img/friend_404.gif'" alt="avatar"/></div><div class="site-data text-center"><a href="/archives/"><div class="headline">文章</div><div class="length-num">24</div></a><a href="/tags/"><div class="headline">标签</div><div class="length-num">70</div></a><a href="/categories/"><div class="headline">分类</div><div class="length-num">16</div></a></div><div class="menus_items"><div class="menus_item"><a class="site-page" href="/"><i class="fa-fw fas fa-home"></i><span> 首页</span></a></div><div class="menus_item"><a class="site-page" href="/archives/"><i class="fa-fw fas fa-archive"></i><span> 归档</span></a></div><div class="menus_item"><a class="site-page" href="/categories/"><i class="fa-fw fas fa-folder-open"></i><span> 分类</span></a></div><div class="menus_item"><a class="site-page" href="/tags/"><i class="fa-fw fas fa-tags"></i><span> 标签</span></a></div><div class="menus_item"><a class="site-page" href="/gallery/"><i class="fa-fw fas fa-images"></i><span> 相册</span></a></div><div class="menus_item"><a class="site-page" href="/about/"><i class="fa-fw fas fa-heart"></i><span> 关于</span></a></div></div></div></div><div class="post" id="body-wrap"><header class="post-bg" id="page-header"><nav id="nav"><span id="blog-info"><a class="nav-site-title" href="/"><span class="site-name">aidon's blog</span></a><a class="nav-page-title" href="/"><span class="site-name">湖里 Lakes：搬到微信云托管，部署和踩坑</span><span class="site-name"><i class="fa-solid fa-circle-arrow-left"></i><span>  返回首页</span></span></a></span><div id="menus"><div id="search-button"><span class="site-page social-icon search"><i class="fas fa-search fa-fw"></i><span> 搜索</span></span></div><div class="menus_items"><div class="menus_item"><a class="site-page" href="/"><i class="fa-fw fas fa-home"></i><span> 首页</span></a></div><div class="menus_item"><a class="site-page" href="/archives/"><i class="fa-fw fas fa-archive"></i><span> 归档</span></a></div><div class="menus_item"><a class="site-page" href="/categories/"><i class="fa-fw fas fa-folder-open"></i><span> 分类</span></a></div><div class="menus_item"><a class="site-page" href="/tags/"><i class="fa-fw fas fa-tags"></i><span> 标签</span></a></div><div class="menus_item"><a class="site-page" href="/gallery/"><i class="fa-fw fas fa-images"></i><span> 相册</span></a></div><div class="menus_item"><a class="site-page" href="/about/"><i class="fa-fw fas fa-heart"></i><span> 关于</span></a></div></div><div id="toggle-menu"><span class="site-page"><i class="fas fa-bars fa-fw"></i></span></div></div></nav><div id="post-info"><h1 class="post-title">湖里 Lakes：搬到微信云托管，部署和踩坑</h1><div id="post-meta"><div class="meta-firstline"><span class="post-meta-date"><i class="far fa-calendar-alt fa-fw post-meta-icon"></i><span class="post-meta-label">发表于</span><time class="post-meta-date-created" datetime="2026-11-14T13:00:00.000Z" title="发表于 2026-11-14 21:00:00">2026-11-14</time><span class="post-meta-separator">|</span><i class="fas fa-history fa-fw post-meta-icon"></i><span class="post-meta-label">更新于</span><time class="post-meta-date-updated" datetime="2026-11-14T07:44:10.849Z" title="更新于 2026-11-14 15:44:10">2026-11-14</time></span><span class="post-meta-categories"><span class="post-meta-separator">|</span><i class="fas fa-inbox fa-fw post-meta-icon"></i><a class="post-meta-categories" href="/categories/%E5%BE%AE%E4%BF%A1%E5%B0%8F%E7%A8%8B%E5%BA%8F/">微信小程序</a><i class="fas fa-angle-right post-meta-separator"></i><i class="fas fa-inbox fa-fw post-meta-icon"></i><a class="post-meta-categories" href="/categories/%E5%BE%AE%E4%BF%A1%E5%B0%8F%E7%A8%8B%E5%BA%8F/%E7%82%B9%E9%A4%90%E7%B3%BB%E7%BB%9F/">点餐系统</a></span></div><div class="meta-secondline"><span class="post-meta-separator">|</span><span class="post-meta-wordcount"><i class="far fa-file-word fa-fw post-meta-icon"></i><span class="post-meta-label">总字数:</span><span class="word-count">3.5k</span><span class="post-meta-separator">|</span><i class="far fa-clock fa-fw post-meta-icon"></i><span class="post-meta-label">阅读时长:</span><span>12分钟</span></span><span class="post-meta-separator">|</span><span class="post-meta-pv-cv" id="" data-flag-title=""><i class="far fa-eye fa-fw post-meta-icon"></i><span class="post-meta-label">浏览量:</span><span id="busuanzi_value_page_pv"><i class="fa-solid fa-spinner fa-spin"></i></span></span></div></div></div></header><main class="layout" id="content-inner"><div id="post"><article class="container post-content" id="article-container"><p>湖里 Lakes 是给朋友的精酿餐吧做的点餐系统。代码在本地跑通只是第一步，真正难的是让店里的人每天打开就能用，而且我不用半夜起来重启服务。这篇记录把它搬到微信云托管的过程，包括容器怎么改、密钥放哪、支付回调怎么通，以及那些只有真正发过版才会遇到的坑。</p>
+<h2 id="为什么选云托管"><a href="#为什么选云托管" class="headerlink" title="为什么选云托管"></a>为什么选云托管</h2><p>一开始我认真算过买服务器这条路。一台最低配的云服务器，加上域名、备案、HTTPS 证书、MySQL、Nginx 反向代理、日志轮转、安全组，东西不算多，但每一样都要人管。证书三个月到期一次，数据库要记得备份，系统补丁要打。这个项目只有我一个人，白天还有别的事，代码之外的运维能省就省。</p>
+<p>云托管吸引我的地方很直接：</p>
+<ul>
+<li>不用碰服务器，容器跑起来就有默认域名和 HTTPS，证书不用自己续；</li>
+<li>小程序里用 <code>wx.cloud.callContainer</code> 调后端，走微信内网，少一套鉴权；</li>
+<li>按量计费，没人访问时副本可以缩到 0，对小店这种流量很合适。</li>
+</ul>
+<p>代价也有：容器、镜像、构建、版本这些概念要学一遍；冷启动第一次请求会慢；日志和排障不如自己 SSH 上去顺手。但和长期运维比，我认这个代价。</p>
+<h2 id="要部署的东西有几样"><a href="#要部署的东西有几样" class="headerlink" title="要部署的东西有几样"></a>要部署的东西有几样</h2><p>系统拆成了两个云托管服务。</p>
+<table>
+<thead>
+<tr>
+<th>服务</th>
+<th>内容</th>
+<th>容器端口</th>
+</tr>
+</thead>
+<tbody><tr>
+<td><code>bar-mvp</code></td>
+<td>Spring Boot 后端，负责接口、支付、数据库</td>
+<td>9200</td>
+</tr>
+<tr>
+<td><code>bar-web</code></td>
+<td>Nginx 静态包，装商家端、管理端、收银台</td>
+<td>80</td>
+</tr>
+</tbody></table>
+<p>前端其实有三个产物，放在同一个 Nginx 容器里，用路径区分：</p>
+<table>
+<thead>
+<tr>
+<th>访问路径</th>
+<th>产物来源</th>
+<th>说明</th>
+</tr>
+</thead>
+<tbody><tr>
+<td><code>/</code></td>
+<td><code>vue-siam-shop/dist</code></td>
+<td>商家端，也是店里的管理端</td>
+</tr>
+<tr>
+<td><code>/admin/</code></td>
+<td>同一份产物副本</td>
+<td>双入口兼容</td>
+</tr>
+<tr>
+<td><code>/cashier/</code></td>
+<td><code>cashier-web/dist</code></td>
+<td>收银台，商家端 iframe 里打开</td>
+</tr>
+</tbody></table>
+<p>后端则是一个 Spring Boot 源码包，云端用 Dockerfile 里的 Maven 构建，不把本地打好的 jar 传上去。这样版本和源码对得上，换台电脑也能发版。</p>
+<h2 id="容器化改造"><a href="#容器化改造" class="headerlink" title="容器化改造"></a>容器化改造</h2><p>后端用的是多阶段构建。构建阶段用 JDK8 + Maven，运行阶段只留 JRE，镜像能小不少。真实用的 Dockerfile 大致是这样：</p>
+<figure class="highlight dockerfile"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br><span class="line">40</span><br><span class="line">41</span><br><span class="line">42</span><br><span class="line">43</span><br><span class="line">44</span><br><span class="line">45</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">FROM</span> maven:<span class="number">3.8</span>-openjdk-<span class="number">8</span> AS builder</span><br><span class="line"><span class="keyword">WORKDIR</span><span class="language-bash"> /build</span></span><br><span class="line"></span><br><span class="line"><span class="keyword">RUN</span><span class="language-bash"> <span class="built_in">mkdir</span> -p /root/.m2 &amp;&amp; <span class="built_in">printf</span> <span class="string">&#x27;&lt;?xml version=&quot;1.0&quot; encoding=&quot;UTF-8&quot;?&gt;\n\</span></span></span><br><span class="line"><span class="string"><span class="language-bash">&lt;settings xmlns=&quot;http://maven.apache.org/SETTINGS/1.0.0&quot;&gt;\n\</span></span></span><br><span class="line"><span class="string"><span class="language-bash">  &lt;mirrors&gt;\n\</span></span></span><br><span class="line"><span class="string"><span class="language-bash">    &lt;mirror&gt;\n\</span></span></span><br><span class="line"><span class="string"><span class="language-bash">      &lt;id&gt;aliyun-public&lt;/id&gt;\n\</span></span></span><br><span class="line"><span class="string"><span class="language-bash">      &lt;mirrorOf&gt;central&lt;/mirrorOf&gt;\n\</span></span></span><br><span class="line"><span class="string"><span class="language-bash">      &lt;url&gt;https://maven.aliyun.com/repository/public&lt;/url&gt;\n\</span></span></span><br><span class="line"><span class="string"><span class="language-bash">    &lt;/mirror&gt;\n\</span></span></span><br><span class="line"><span class="string"><span class="language-bash">  &lt;/mirrors&gt;\n\</span></span></span><br><span class="line"><span class="string"><span class="language-bash">&lt;/settings&gt;\n&#x27;</span> &gt; /root/.m2/settings.xml</span></span><br><span class="line"></span><br><span class="line"><span class="keyword">COPY</span><span class="language-bash"> pom.xml ./</span></span><br><span class="line"><span class="keyword">COPY</span><span class="language-bash"> siam-common/pom.xml ./siam-common/</span></span><br><span class="line"><span class="keyword">COPY</span><span class="language-bash"> siam-weixin/pom.xml ./siam-weixin/</span></span><br><span class="line"><span class="keyword">COPY</span><span class="language-bash"> siam-weixin/weixin-basic/pom.xml ./siam-weixin/weixin-basic/</span></span><br><span class="line"><span class="keyword">COPY</span><span class="language-bash"> siam-weixin/weixin-pay/pom.xml ./siam-weixin/weixin-pay/</span></span><br><span class="line"><span class="keyword">COPY</span><span class="language-bash"> siam-system/pom.xml ./siam-system/</span></span><br><span class="line"><span class="keyword">COPY</span><span class="language-bash"> siam-system/system-api/pom.xml ./siam-system/system-api/</span></span><br><span class="line"><span class="keyword">COPY</span><span class="language-bash"> siam-system/system-provider/pom.xml ./siam-system/system-provider/</span></span><br><span class="line"><span class="keyword">COPY</span><span class="language-bash"> siam-monitor/pom.xml ./siam-monitor/</span></span><br><span class="line"><span class="keyword">RUN</span><span class="language-bash"> mvn -q -pl siam-system/system-provider -am dependency:go-offline -DskipTests || <span class="literal">true</span></span></span><br><span class="line"></span><br><span class="line"><span class="keyword">COPY</span><span class="language-bash"> siam-common ./siam-common</span></span><br><span class="line"><span class="keyword">COPY</span><span class="language-bash"> siam-weixin ./siam-weixin</span></span><br><span class="line"><span class="keyword">COPY</span><span class="language-bash"> siam-system ./siam-system</span></span><br><span class="line"><span class="keyword">COPY</span><span class="language-bash"> siam-monitor ./siam-monitor</span></span><br><span class="line"><span class="keyword">RUN</span><span class="language-bash"> mvn -q -pl siam-system/system-provider -am package -DskipTests \</span></span><br><span class="line"><span class="language-bash"> &amp;&amp; <span class="built_in">cp</span> siam-system/system-provider/target/siam-server.jar /build/app.jar</span></span><br><span class="line"></span><br><span class="line"><span class="keyword">FROM</span> eclipse-temurin:<span class="number">8</span>-jre</span><br><span class="line"><span class="keyword">RUN</span><span class="language-bash"> apt-get update \</span></span><br><span class="line"><span class="language-bash"> &amp;&amp; apt-get install -y --no-install-recommends fontconfig fonts-dejavu-core \</span></span><br><span class="line"><span class="language-bash"> &amp;&amp; <span class="built_in">rm</span> -rf /var/lib/apt/lists/*</span></span><br><span class="line"></span><br><span class="line"><span class="keyword">ENV</span> TZ=Asia/Shanghai \</span><br><span class="line">    SPRING_PROFILES_ACTIVE=mvp \</span><br><span class="line">    JAVA_OPTS=<span class="string">&quot;-XX:MaxRAMPercentage=70.0 -XX:+HeapDumpOnOutOfMemoryError -Duser.timezone=Asia/Shanghai -Djava.awt.headless=true&quot;</span></span><br><span class="line"></span><br><span class="line"><span class="keyword">WORKDIR</span><span class="language-bash"> /app</span></span><br><span class="line"><span class="keyword">COPY</span><span class="language-bash"> --from=builder /build/app.jar /app/app.jar</span></span><br><span class="line"><span class="keyword">EXPOSE</span> <span class="number">9200</span></span><br><span class="line"><span class="keyword">ENTRYPOINT</span><span class="language-bash"> [<span class="string">&quot;sh&quot;</span>, <span class="string">&quot;-c&quot;</span>, <span class="string">&quot;exec java <span class="variable">$JAVA_OPTS</span> -jar /app/app.jar&quot;</span>]</span></span><br></pre></td></tr></table></figure>
+
+<p>几个地方是踩过才加的。</p>
+<p>先拷 <code>pom.xml</code> 再拷源码，是为了让依赖下载单独成层。改一行 Java 代码重新构建时，Maven 不用把依赖再下一遍。<code>siam-monitor</code> 本身不参与运行，但父 pom 的 <code>&lt;modules&gt;</code> 里声明了它，少拷一个 pom 就会报子模块找不到。</p>
+<p>运行阶段装 <code>fontconfig</code> 和字体，是因为桌码图片是服务端用 Java2D 画的，容器里没有字体会直接抛 AWT 异常。这个错误本地永远复现不了，本地 Mac 有字体。</p>
+<p><code>SPRING_PROFILES_ACTIVE=mvp</code> 也写进了镜像默认值。有一次忘了配这个变量，容器用 <code>local</code> profile 启动，数据源指向容器内的 <code>127.0.0.1</code>，健康检查居然还是 UP，接口一调就报错。这种“假健康”比直接启动失败更难查。</p>
+<p>前端那个容器简单一些，但坑在入口脚本：</p>
+<figure class="highlight dockerfile"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">FROM</span> nginx:alpine</span><br><span class="line"></span><br><span class="line"><span class="keyword">COPY</span><span class="language-bash"> dist/shop/ /usr/share/nginx/html/</span></span><br><span class="line"><span class="keyword">COPY</span><span class="language-bash"> dist/admin/ /usr/share/nginx/html/admin/</span></span><br><span class="line"><span class="keyword">COPY</span><span class="language-bash"> dist/cashier/ /usr/share/nginx/html/cashier/</span></span><br><span class="line"><span class="keyword">COPY</span><span class="language-bash"> nginx.conf /etc/nginx/conf.d/default.conf</span></span><br><span class="line"></span><br><span class="line"><span class="keyword">RUN</span><span class="language-bash"> nginx -t</span></span><br><span class="line"></span><br><span class="line"><span class="keyword">ENTRYPOINT</span><span class="language-bash"> [<span class="string">&quot;nginx&quot;</span>, <span class="string">&quot;-g&quot;</span>, <span class="string">&quot;daemon off;&quot;</span>]</span></span><br></pre></td></tr></table></figure>
+
+<p><code>nginx:alpine</code> 自带的 <code>docker-entrypoint.sh</code> 会先跑一段 <code>sed</code> 去改配置。云托管的容器文件系统有只读限制，那段脚本执行失败，因为 <code>set -e</code>，后面的 nginx 也不会启动，表现就是 80 端口一直拒绝连接、健康检查失败。必须用 <code>ENTRYPOINT</code> 直接覆盖，写成 <code>CMD</code> 没用，官方镜像的 <code>ENTRYPOINT</code> 还会继续执行。</p>
+<p>Nginx 配置本身不复杂，三个目录各自回退到自己的 <code>index.html</code>：</p>
+<figure class="highlight nginx"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br></pre></td><td class="code"><pre><span class="line"><span class="section">server</span> &#123;</span><br><span class="line">    <span class="attribute">listen</span> <span class="number">80</span>;</span><br><span class="line">    <span class="attribute">server_name</span> _;</span><br><span class="line">    <span class="attribute">root</span> /usr/share/nginx/html;</span><br><span class="line">    <span class="attribute">index</span> index.html;</span><br><span class="line">    <span class="attribute">gzip</span> <span class="literal">on</span>;</span><br><span class="line">    <span class="attribute">gzip_types</span> text/css application/javascript application/json image/svg+xml;</span><br><span class="line"></span><br><span class="line">    <span class="section">location</span> / &#123; <span class="attribute">try_files</span> <span class="variable">$uri</span> <span class="variable">$uri</span>/ /index.html; &#125;</span><br><span class="line">    <span class="section">location</span> /admin/ &#123; <span class="attribute">try_files</span> <span class="variable">$uri</span> <span class="variable">$uri</span>/ /admin/index.html; &#125;</span><br><span class="line">    <span class="section">location</span> /cashier/ &#123; <span class="attribute">try_files</span> <span class="variable">$uri</span> <span class="variable">$uri</span>/ /cashier/index.html; &#125;</span><br><span class="line"></span><br><span class="line">    <span class="section">location</span> = /healthz &#123; <span class="attribute">return</span> <span class="number">200</span>; &#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p>前端产物都是 hash 路由，<code>try_files</code> 其实不是必须的，留着是为了以后万一改成 history 路由不用再动配置。</p>
+<h2 id="环境变量与密钥"><a href="#环境变量与密钥" class="headerlink" title="环境变量与密钥"></a>环境变量与密钥</h2><p>数据库密码、对象存储的 AccessKey、微信支付的商户号和密钥，一个都不能进镜像。镜像会被拉取、会被缓存，写进去就等于公开。这些全部放在云托管服务的环境变量里，发版时不动。</p>
+<p>后端实际用到的变量大致分四组：</p>
+<table>
+<thead>
+<tr>
+<th>分组</th>
+<th>变量</th>
+<th>用途</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>运行环境</td>
+<td><code>SPRING_PROFILES_ACTIVE</code></td>
+<td>固定 <code>mvp</code>，决定读哪份配置</td>
+</tr>
+<tr>
+<td>数据库</td>
+<td><code>MYSQL_ADDRESS</code>、<code>MYSQL_USERNAME</code>、<code>MYSQL_PASSWORD</code></td>
+<td>云托管 MySQL 连接信息</td>
+</tr>
+<tr>
+<td>对象存储</td>
+<td><code>ALIYUN_OSS_KEY</code>、<code>ALIYUN_OSS_SECRET</code>、<code>ALIYUN_OSS_PRIVATE_BUCKET</code></td>
+<td>商品图、证件材料</td>
+</tr>
+<tr>
+<td>微信</td>
+<td><code>WXPAY_APPID</code>、<code>WXPAY_MCHID</code>、<code>WXPAY_MCHKEY</code>、<code>WXPAY_NOTIFY_URL</code>、<code>WXLOGIN_APPID</code>、<code>WXLOGIN_SECRET</code></td>
+<td>登录与支付</td>
+</tr>
+</tbody></table>
+<p>配置里读的都是 <code>$&#123;MYSQL_PASSWORD&#125;</code> 这种占位，没配就是空字符串。这里有个设计取舍：对象存储的私有桶变量如果缺失，上传会直接报“未配置”，而不是悄悄传到默认桶。宁可报错，也别把证件照传到公开桶里。</p>
+<p>密钥的具体值这里就不写了，统一按已脱敏处理。真要交接，走密码管理器，不要贴在文档或聊天记录里。</p>
+<h2 id="微信支付回调"><a href="#微信支付回调" class="headerlink" title="微信支付回调"></a>微信支付回调</h2><p>支付这块最容易卡住。下单接口能返回，支付也能拉起，但钱付完之后订单状态不变，多半是回调没进来。</p>
+<p>回调地址通过 <code>WXPAY_NOTIFY_URL</code> 配，必须满足两个条件：公网能访问，而且是 HTTPS。云托管的默认域名本身带 HTTPS，可以直接用；后来绑了自定义域名 <code>api.show.siamit.cn</code>，回调地址也跟着换成了这个域名下的路径。</p>
+<p>排查验签失败时，我一般按这个顺序看：</p>
+<ol>
+<li>微信支付后台配置的回调地址，和 <code>WXPAY_NOTIFY_URL</code> 是不是完全一致，包括协议、域名、路径，多一个斜杠都不行；</li>
+<li><code>WXPAY_APPID</code>、<code>WXPAY_MCHID</code>、<code>WXPAY_MCHKEY</code> 是不是同一套商户资料，测试环境和正式环境经常混；</li>
+<li>回调接口有没有被网关或框架提前消费掉请求体，验签要用原始报文，读过一次流后面就空了；</li>
+<li>容器日志里有没有收到请求。如果连日志都没有，问题在网络层，不在签名。</li>
+</ol>
+<p>还有一点，支付回调是微信服务器主动发的，和用户手机在不在线没关系。所以本地开发时用内网穿透拿到的临时地址只能测通链路，正式上线必须换成备案过的固定域名。</p>
+<h2 id="域名与备案"><a href="#域名与备案" class="headerlink" title="域名与备案"></a>域名与备案</h2><p>云托管给每个服务一个默认域名，形如 <code>https://bar-mvp-xxxx.sh.run.tcloudbase.com</code>，开箱就能用，HTTPS 也不用自己配。前期我一直用默认域名，省事。</p>
+<p>后来要绑自己的域名，流程就绕不开了：域名实名、ICP 备案、在云托管控制台绑定、配证书。备案期间域名不能对外提供访问，所以这一步最好提前做，别等上线前一天才想起来。</p>
+<p>另外，小程序本身的备案和域名备案是两件事。小程序要在微信后台提交主体和类目资料，域名备案是另一套系统。我当时在小程序后台填资料，页面大概是这样：</p>
+<p><img src="data:image/gif;base64,R0lGODlhAQABAIAAAAAAAP///yH5BAEAAAAALAAAAAABAAEAAAIBRAA7" data-lazy-src="/img/miniprogram/mp-beian-verify.png" alt="小程序后台的备案类型验证页"></p>
+<p>截图里只留了页面结构，证件信息都避开了。这一步填完还要等审核，时间不完全可控，排期的时候要留余量。</p>
+<h2 id="发版流程与批次归档"><a href="#发版流程与批次归档" class="headerlink" title="发版流程与批次归档"></a>发版流程与批次归档</h2><p>云托管有两个概念容易混：上传代码包和发布版本。上传只是创建了一个新版本，流量还在旧版本上；必须再点发布，或者用 CLI 的 <code>run:deploy</code> 一次做完，新版本才真正接流量。</p>
+<p>后端发版用脚本，核心命令是：</p>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br></pre></td><td class="code"><pre><span class="line">wxcloud run:deploy ./deploy/context \</span><br><span class="line">  -e prod-d6gd6a2twe27f592a -s bar-mvp --region ap-shanghai \</span><br><span class="line">  --containerPort 9200 --dockerfile Dockerfile --targetDir . \</span><br><span class="line">  --releaseType FULL --noConfirm --remark <span class="string">&quot;本次改了什么&quot;</span></span><br></pre></td></tr></table></figure>
+
+<p><code>--targetDir .</code> 和 <code>--remark</code> 必须显式给。少第一个会弹交互菜单，非交互环境直接报 readline 错误；少第二个会卡在“请输入版本备注”。这两个坑我各踩过一次。</p>
+<p>前端是另一个脚本，把三个 <code>dist</code> 同步到一个目录，打包、解压、再发到 <code>bar-web</code>，端口 80。前端产物构建有个历史包袱：商家端是 Vue2 + webpack4 + node-sass，必须用 Node 12 x64，不然 <code>node-sass</code> 的 ABI 对不上，装依赖就失败。收银台是 Vue3 + Vite，用现在的 Node 反而正常。两个工程在同一台机器上构建，切 Node 版本这件事一直很烦。</p>
+<p>每发一次版，我会在 <code>docs/_业务/云托管/</code> 下留一份批次记录，文件名带日期和三个载体的版本号，比如 <code>已发布-20261002-barmvp046-barweb054-mp1.2.3.md</code>。里面固定写几块：</p>
+<ul>
+<li>批次元信息：主题、登记日、涉及哪些载体、前置依赖；</li>
+<li>内容清单：后端改了什么、前端改了什么、小程序改了什么、有没有 DDL&#x2F;DML；</li>
+<li>发版顺序和验证探针：先发谁后发谁，发完用什么接口或页面证明新代码真的在跑；</li>
+<li>发布结果：时间、版本号、验证证据、回滚版本、有没有夹带别的改动。</li>
+</ul>
+<p>这套东西看起来像流程负担，但真出问题时很有用。有一次线上改单报 500，我翻批次记录，十分钟内就定位到是某一版漏传了字段，回滚也有明确的上一版版本号，不用猜。</p>
+<h2 id="踩坑记录"><a href="#踩坑记录" class="headerlink" title="踩坑记录"></a>踩坑记录</h2><p>把印象最深的几个列一下，都是实际撞过的。</p>
+<p><strong>上传成功不等于发布成功。</strong> CLI 提示“部署完成”不代表新版本在接流量，要用 <code>wxcloud version:list</code> 看新版本状态是不是 <code>normal</code>。有一次我发完没看，第二天发现线上还是旧代码。</p>
+<p><strong>构建上下文不能传仓库根目录。</strong> CLI 打包不读 <code>.dockerignore</code>，把整个仓库传上去会把前端工程、<code>.git</code>、<code>node_modules</code> 全带上，体积几百 MB，版本长时间卡在 <code>creating</code>。后端只用裁剪过的 <code>deploy/context</code>，几百个文件、不到 10 MB。</p>
+<p><strong>代码包上传报 400，先怀疑本机代理。</strong> CLI 内部上传用的 axios 会读 <code>HTTPS_PROXY</code>，把 HTTPS 请求当成明文发给代理，代理返回 400，CLI 再兜成一个看不懂的“代码包上传失败”。临时办法是命令前加 <code>NO_PROXY=&#39;*&#39;</code>，长期办法是给 CLI 打补丁。</p>
+<p><strong>冷启动会超时。</strong> 副本缩到 0 之后，第一个请求要等容器拉起来，后端 Spring Boot 加上数据库连接，一两分钟很正常。健康检查的初始延迟要给够，前端首屏也要接受第一次慢。店里早上第一单之前，最好有人先打开一次。</p>
+<p><strong>容器时区。</strong> 不配 <code>TZ</code> 和 <code>-Duser.timezone</code>，容器默认 UTC，订单时间会比北京时间少 8 小时。这个错误不会报错，只会让报表和日志看起来很奇怪。</p>
+<p><strong>静态资源 404 和缓存。</strong> 前端发版后页面没变，先硬刷新，<code>index.html</code> 缓存很顽固；再看线上引用的 JS hash 和本地 <code>dist</code> 是否一致。如果整个页面 404，检查 Nginx 的 <code>ENTRYPOINT</code> 和目录映射，别只看构建日志。</p>
+<p><strong>容器里调微信接口报证书错误。</strong> 云托管控制台有个“开放接口服务”开关，开了之后容器里会装一份自签名证书，Java 不认，报 <code>PKIX path building failed</code>。关掉重新部署就好。</p>
+<p><strong>日志里有噪音。</strong> 构建日志里的 <code>ResourceNotFound.TopicNotExist</code> 和旧版本日志都不是本次发版的问题，别被带偏。真正要看的是新版本的构建结果、健康检查和业务接口返回。</p>
+<h2 id="上线后的状态"><a href="#上线后的状态" class="headerlink" title="上线后的状态"></a>上线后的状态</h2><p>现在店里在用，后端和前端各一个服务，副本最小 0，流量不大，每个月的账单还能接受。冷启动的几秒到一分钟，放在餐饮场景里可以接受，毕竟不是每秒都有人下单。</p>
+<p>还没有做得很好的地方也记一下：数据库备份目前只做了最基础的定时备份，没有单独做异地备份；监控只有健康检查，没有告警；小程序每次发版还要人工上传、提审。一个人维护的项目，这些就先留着了。等店里真忙起来，再按优先级补。</p>
+</article><div class="post-copyright"><div class="post-copyright__author"><span class="post-copyright-meta"><i class="fas fa-circle-user fa-fw"></i>文章作者: </span><span class="post-copyright-info"><a href="https://aidon-chen.github.io">aidon</a></span></div><div class="post-copyright__type"><span class="post-copyright-meta"><i class="fas fa-square-arrow-up-right fa-fw"></i>文章链接: </span><span class="post-copyright-info"><a href="https://aidon-chen.github.io/2026/11/14/lakes-cloudrun-deploy/">https://aidon-chen.github.io/2026/11/14/lakes-cloudrun-deploy/</a></span></div><div class="post-copyright__notice"><span class="post-copyright-meta"><i class="fas fa-circle-exclamation fa-fw"></i>版权声明: </span><span class="post-copyright-info">本博客所有文章除特别声明外，均采用 <a href="https://creativecommons.org/licenses/by-nc-sa/4.0/" target="_blank">CC BY-NC-SA 4.0</a> 许可协议。转载请注明来源 <a href="https://aidon-chen.github.io" target="_blank">aidon's blog</a>！</span></div></div><div class="tag_share"><div class="post-meta__tag-list"><a class="post-meta__tags" href="/tags/%E8%B8%A9%E5%9D%91/">踩坑</a><a class="post-meta__tags" href="/tags/%E5%BE%AE%E4%BF%A1%E4%BA%91%E6%89%98%E7%AE%A1/">微信云托管</a><a class="post-meta__tags" href="/tags/Docker/">Docker</a><a class="post-meta__tags" href="/tags/%E9%83%A8%E7%BD%B2/">部署</a></div><div class="post-share"><div class="social-share" data-image="/img/avatar.png" data-sites="facebook,x,wechat,weibo,qq"></div><link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/butterfly-extsrc@1.1.6/sharejs/dist/css/share.min.css" media="print" onload="this.media='all'"><script src="https://cdn.jsdelivr.net/npm/butterfly-extsrc@1.1.6/sharejs/dist/js/social-share.min.js" defer></script></div></div><nav class="pagination-post" id="pagination"><a class="pagination-related" href="/2026/11/14/study-workbench-service-ai/" title="给复习页接上 SQLite 和 AI 评分：Key 不能进浏览器"><div class="cover" style="background: var(--default-bg-color)"></div><div class="info"><div class="info-1"><div class="info-item-1">上一篇</div><div class="info-item-2">给复习页接上 SQLite 和 AI 评分：Key 不能进浏览器</div></div><div class="info-2"><div class="info-item-1">前言上一篇写到第一版有三个问题：数据跟着浏览器走、批注没法备份、file:// 和本地服务的状态对不上。这三个问题都不是界面能解决的，得有地方把数据存下来。 11 月 5 日基本都在补这一块：  上午先写 quiz-ai.js，把 AI 评分的请求封住，同时更新 README 和几份文档。 13:20 改入口页，13:23 调 app.js，把新模块接进去。 14:29 server.js 换成 SQLite 多表结构，并加了 /api/grade。 14:33 和 15:07 分别改 map-view.js、quiz-view.js，让两个视图适配服务端。 18:01 整理考题分布，把押题和考试结构对了一遍。  为什么又写了个服务这个东西只给我自己用，数据也只在这台电脑上，没必要买服务器，更没必要做登录。 所以 server.js 就是一个本地 HTTP 服务：node server.js 起在 127.0.0.1:8765，既托管静态文件，也提供数据接口。数据库用 Node 自带的 node:sqlite，不需要装任何 npm 包。数据库文件在 data/study.db，备...</div></div></div></a><a class="pagination-related" href="/2026/11/14/study-workbench-frontend/" title="给自己搭了个课程复习平台"><div class="cover" style="background: var(--default-bg-color)"></div><div class="info text-right"><div class="info-1"><div class="info-item-1">下一篇</div><div class="info-item-2">给自己搭了个课程复习平台</div></div><div class="info-2"><div class="info-item-1">前言这学期有门「计算机地图制图」。课件按章分了七个文件夹，课后题和答案是两份 Markdown，押题又是另外一份。复习到「扫描线填充」的时候，我得同时开着课件、题库和导图，来回切窗口找对应的地方。 所以我想要的东西很具体：一张能展开收起的知识树，点一个节点，右边就是这块知识的正文和对应课件页；另一个页签是题库，能答题、记错题、写笔记；正文里看到不顺眼的地方，能直接划词写批注。 最好像个绿色软件，双击一个 HTML 就能用，不用装环境。  两天里都干了什么第一版没有设计稿，基本是想到哪写到哪，时间点按本地文件的改动排：  11 月 2 日下午，先把七章知识点整理成 map-data.js，一共 7 章、53 个主题、227 个要点；晚上把正文底稿写出来。 11 月 3 日中午，题库成型，167 道题：作业 88、思考题 55、押题 24。14:37 做了第一次提交，22 个文件、约 5870 行。 11 月 3 日晚上，把批注模块重写了一遍，加了课后题答案区的批注侧栏，补了一份样式规范。  仓库后来被压成了一次初始化提交，所以这里的时间是按本地文件的改动时间整理的，不是提交记录。 ...</div></div></div></a></nav><div class="relatedPosts"><div class="headline"><i class="fas fa-thumbs-up fa-fw"></i><span>相关推荐</span></div><div class="relatedPosts-list"><a class="pagination-related" href="/2026/10/20/mp-deploy-overview/" title="小程序从写完到能让人用，中间要过哪几道关"><div class="cover" style="background: var(--default-bg-color)"></div><div class="info text-center"><div class="info-1"><div class="info-item-1"><i class="far fa-calendar-alt fa-fw"></i> 2026-10-20</div><div class="info-item-2">小程序从写完到能让人用，中间要过哪几道关</div></div><div class="info-2"><div class="info-item-1">做完两个小程序项目之后，我发现“写完”和“能让人用”之间隔着的不是一点代码，而是一串很容易被低估的事。第一个项目用云开发，第二个用云托管，两条路都走过一遍，这篇把部署这件事拆开讲清楚，给同样一个人做项目的人参考。 部署到底包含什么代码在开发者工具里跑通，只是本地环境成立。要让别人也能用，至少要同时满足这些条件：    部分 要解决的问题    小程序包 体验版、审核、正式版，缺一个用户都打不开   后端服务 接口部署在公网，能稳定运行，挂了能重启   数据库 初始化、账号权限、备份，数据丢了没法补救   域名与备案 小程序请求域名、支付回调域名，国内服务器还要备案   HTTPS 小程序和支付都要求安全连接，证书过期会直接不可用   审核资料 主体、类目、隐私协议，填错会被驳回   任何一项没弄好，用户看到的就是“打不开”“加载失败”或者“系统异常”。而这些错误在本地都不会出现。 两条路：云开发和云托管微信生态里常见的两种后端放法，差别不在语言，而在“谁管运行环境”。 云开发把后端拆成云函数、云数据库、云存储。不用买服务器，不用配 Nginx，不用管证书，登录态直接拿 openi...</div></div></div></a><a class="pagination-related" href="/2026/10/30/teci-arm-reach-diagnosis/" title="机械臂总是够不着按钮：一次排查记录"><div class="cover" style="background: var(--default-bg-color)"></div><div class="info text-center"><div class="info-1"><div class="info-item-1"><i class="far fa-calendar-alt fa-fw"></i> 2026-10-30</div><div class="info-item-2">机械臂总是够不着按钮：一次排查记录</div></div><div class="info-2"><div class="info-item-1">机器人比赛里最让人头疼的失败，不是代码报错，而是每一步日志看起来都对，物理上就是差一点。这篇记两个这样的问题，都发生在调动作的那几周。 问题一：按钮，六个点全够不着场景二每柜的动作序列里有一项”按释放按钮”，判定条件是按钮的滑动关节行程 ≥6mm（总行程 8mm）。r02 轮实跑，六个候选按压点全部 reached=false。更糟的是连锁反应：按钮按不下去 → 拉门报 handle_release_failed → 门只开了 0.0173 rad（要求 ≥0.30）→ 识灯直接失败。一个按钮串掉了三个环节的分。 量出来到底差多少我没有猜，直接量。pregrasp 位到按钮 gate 点实测距离 0.263m；右臂在第 61 步左右逼近到 0.057m，然后开始发散，最后停在 0.543m——离按钮差着大半个身位。 接着做对照：  基线内收 0.08m，gate 能到了（残差 0.017m），但 24 次 4mm 步进只推进了约 6mm，按钮行程一直是 0——够得着，按不动； 内收 0.16m，压入深度还是只有 -0.037m，碰都没碰到按钮面。  到这里结论已经清楚了：“名义停...</div></div></div></a><a class="pagination-related" href="/2026/11/14/study-workbench-service-ai/" title="给复习页接上 SQLite 和 AI 评分：Key 不能进浏览器"><div class="cover" style="background: var(--default-bg-color)"></div><div class="info text-center"><div class="info-1"><div class="info-item-1"><i class="far fa-calendar-alt fa-fw"></i> 2026-11-14</div><div class="info-item-2">给复习页接上 SQLite 和 AI 评分：Key 不能进浏览器</div></div><div class="info-2"><div class="info-item-1">前言上一篇写到第一版有三个问题：数据跟着浏览器走、批注没法备份、file:// 和本地服务的状态对不上。这三个问题都不是界面能解决的，得有地方把数据存下来。 11 月 5 日基本都在补这一块：  上午先写 quiz-ai.js，把 AI 评分的请求封住，同时更新 README 和几份文档。 13:20 改入口页，13:23 调 app.js，把新模块接进去。 14:29 server.js 换成 SQLite 多表结构，并加了 /api/grade。 14:33 和 15:07 分别改 map-view.js、quiz-view.js，让两个视图适配服务端。 18:01 整理考题分布，把押题和考试结构对了一遍。  为什么又写了个服务这个东西只给我自己用，数据也只在这台电脑上，没必要买服务器，更没必要做登录。 所以 server.js 就是一个本地 HTTP 服务：node server.js 起在 127.0.0.1:8765，既托管静态文件，也提供数据接口。数据库用 Node 自带的 node:sqlite，不需要装任何 npm 包。数据库文件在 data/study.db，备...</div></div></div></a><a class="pagination-related" href="/2026/09/25/mp-cloudbase-pitfalls/" title="云开发踩坑：权限、订阅消息、定时器"><div class="cover" style="background: var(--default-bg-color)"></div><div class="info text-center"><div class="info-1"><div class="info-item-1"><i class="far fa-calendar-alt fa-fw"></i> 2026-09-25</div><div class="info-item-2">云开发踩坑：权限、订阅消息、定时器</div></div><div class="info-2"><div class="info-item-1">这篇不铺垫，直接写踩过的坑。每个坑都是实际撞上、改过代码的，不是从文档里抄的注意事项。 权限：前端直写看起来很美云开发的数据库权限规则有四种模式，配起来很简单。问题是它只能回答「这条记录是不是你创建的」，回答不了「你是不是主任」「这条任务能不能改」。 举个例子。任务由主任创建，指派给成员。如果用「仅创建者可读写」，成员读不到这条任务，因为记录是主任创建的；如果用「所有用户可读」，全中心的人都能看到别人的任务；如果放开写权限，任何人都能把任务状态改成已完成。规则里没有「被指派人可以改状态但不能改标题」这一档。 所以这个项目最后所有写操作都放在云函数里。云函数用的是管理员权限，不受数据库权限规则限制，判断逻辑全在代码里。前端只调 wx.cloud.callFunction，不直接碰 db.collection。 但有一个地方没守规矩。app.js 里刷新未读红点时，直接查了数据库： 1234const db = wx.cloud.database();const res = await db.collection(&#x27;notifications&#x27;)  .where(...</div></div></div></a><a class="pagination-related" href="/2026/11/04/teci-meter-reading-numpy-cv/" title="没有 opencv，怎么在 27 像素的表盘上读数"><div class="cover" style="background: var(--default-bg-color)"></div><div class="info text-center"><div class="info-1"><div class="info-item-1"><i class="far fa-calendar-alt fa-fw"></i> 2026-11-04</div><div class="info-item-2">没有 opencv，怎么在 27 像素的表盘上读数</div></div><div class="info-2"><div class="info-item-1">问题比赛场景二要求机器人读指针式电压表。量程 0–500V，步长 10V，扫角 135°，误差不超过 10V 才有精度分。 约束比任务本身更麻烦：  观测来自头部相机，实测 320×240； 表盘在画面里就 27px 左右，指针长约 11px、宽约 2mm——不到一个像素； judge 环境依赖只有 imageio 和 numpy，没有 torch，没有 opencv； 表盘的精确位姿不在公开元数据里，只能从图像找。  第一次写这东西的时候我对着真实的调试帧看了很久才意识到，这根本不是一个”边缘检测 + 霍夫变换”的问题——目标太小了，小到任何依赖边缘的经典方法都不稳。 第一版：翻车最直觉的做法：灰度化 → 全局亮度阈值 → 面积和长宽比过滤 → 找亮斑当表盘。 跑 r02 轮的时候，算法”成功”定位到了一个框。可惜不是表盘，是画面右下角的一块绿色地面标志。真表盘太暗太小——28×52px，灰度均值 82，柜门背景 52——全局阈值下只剩碎片，全被面积过滤丢了；绿色地标对比度高、面积大，反而全票通过。 调试帧长这样，绿框离表盘十万八千里：  overlay 版本看得更清楚：  那...</div></div></div></a><a class="pagination-related" href="/2026/07/20/github-pages-hexo-butterfly-deploy/" title="从零搭建 GitHub Pages 静态博客：Hexo + Butterfly + Actions 自动部署"><div class="cover" style="background: var(--default-bg-color)"></div><div class="info text-center"><div class="info-1"><div class="info-item-1"><i class="far fa-calendar-alt fa-fw"></i> 2026-07-20</div><div class="info-item-2">从零搭建 GitHub Pages 静态博客：Hexo + Butterfly + Actions 自动部署</div></div><div class="info-2"><div class="info-item-1">前言这篇是博客的第一篇正式文章，顺便把“从 0 到 1 把个人博客部署到 GitHub Pages”的完整过程记下来——包括环境、配置、CI 工作流，以及几个真的会卡住新手的坑和对应解法。后面自己或别人再部署同类静态站，照着抄就能少走弯路。  技术栈：Hexo 7.3 + hexo-theme-butterfly 5.6 + GitHub Pages（用户级）+ GitHub Actions。   一、技术选型：为什么是 Hexo + Butterfly静态博客方案一大把（Hugo &#x2F; Jekyll &#x2F; Astro &#x2F; VuePress…），选 Hexo + Butterfly 是因为它一次性满足了我的 5 条硬需求：    需求 Butterfly 表现    1. Markdown + LaTeX&#x2F;KaTeX 公式 内置 mathjax 开关，装 hexo-filter-mathjax 即生效   2. 多媒体（图片 + 视频链接嵌入） 支持标准 Markdown 图片；视频用 ` 包裹 iframe 即可 | | 3. 相册 / 图集...</div></div></div></a></div></div></div><div class="aside-content" id="aside-content"><div class="card-widget card-info text-center"><div class="avatar-img"><img src="data:image/gif;base64,R0lGODlhAQABAIAAAAAAAP///yH5BAEAAAAALAAAAAABAAEAAAIBRAA7" data-lazy-src="/img/avatar.png" onerror="this.onerror=null;this.src='/img/friend_404.gif'" alt="avatar"/></div><div class="author-info-name">aidon</div><div class="author-info-description"></div><div class="site-data"><a href="/archives/"><div class="headline">文章</div><div class="length-num">24</div></a><a href="/tags/"><div class="headline">标签</div><div class="length-num">70</div></a><a href="/categories/"><div class="headline">分类</div><div class="length-num">16</div></a></div><a id="card-info-btn" target="_blank" rel="noopener" href="https://github.com/xxxxxx"><i class="fab fa-github"></i><span>Follow Me</span></a><div class="card-info-social-icons"><a class="social-icon" href="https://github.com/aidon-chen" target="_blank" title="fab fa-github"><i class="github"></i></a></div></div><div class="card-widget card-announcement"><div class="item-headline"><i class="fas fa-bullhorn fa-shake"></i><span>公告</span></div><div class="announcement_content">This is my Blog</div></div><div class="sticky_layout"><div class="card-widget" id="card-toc"><div class="item-headline"><i class="fas fa-stream"></i><span>目录</span><span class="toc-percentage"></span></div><div class="toc-content"><ol class="toc"><li class="toc-item toc-level-2"><a class="toc-link" href="#%E4%B8%BA%E4%BB%80%E4%B9%88%E9%80%89%E4%BA%91%E6%89%98%E7%AE%A1"><span class="toc-number">1.</span> <span class="toc-text">为什么选云托管</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#%E8%A6%81%E9%83%A8%E7%BD%B2%E7%9A%84%E4%B8%9C%E8%A5%BF%E6%9C%89%E5%87%A0%E6%A0%B7"><span class="toc-number">2.</span> <span class="toc-text">要部署的东西有几样</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#%E5%AE%B9%E5%99%A8%E5%8C%96%E6%94%B9%E9%80%A0"><span class="toc-number">3.</span> <span class="toc-text">容器化改造</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#%E7%8E%AF%E5%A2%83%E5%8F%98%E9%87%8F%E4%B8%8E%E5%AF%86%E9%92%A5"><span class="toc-number">4.</span> <span class="toc-text">环境变量与密钥</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#%E5%BE%AE%E4%BF%A1%E6%94%AF%E4%BB%98%E5%9B%9E%E8%B0%83"><span class="toc-number">5.</span> <span class="toc-text">微信支付回调</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#%E5%9F%9F%E5%90%8D%E4%B8%8E%E5%A4%87%E6%A1%88"><span class="toc-number">6.</span> <span class="toc-text">域名与备案</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#%E5%8F%91%E7%89%88%E6%B5%81%E7%A8%8B%E4%B8%8E%E6%89%B9%E6%AC%A1%E5%BD%92%E6%A1%A3"><span class="toc-number">7.</span> <span class="toc-text">发版流程与批次归档</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#%E8%B8%A9%E5%9D%91%E8%AE%B0%E5%BD%95"><span class="toc-number">8.</span> <span class="toc-text">踩坑记录</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#%E4%B8%8A%E7%BA%BF%E5%90%8E%E7%9A%84%E7%8A%B6%E6%80%81"><span class="toc-number">9.</span> <span class="toc-text">上线后的状态</span></a></li></ol></div></div><div class="card-widget card-recent-post"><div class="item-headline"><i class="fas fa-history"></i><span>最新文章</span></div><div class="aside-list"><div class="aside-list-item no-cover"><div class="content"><a class="title" href="/2026/11/14/lakes-cloudrun-deploy/" title="湖里 Lakes：搬到微信云托管，部署和踩坑">湖里 Lakes：搬到微信云托管，部署和踩坑</a><time datetime="2026-11-14T13:00:00.000Z" title="发表于 2026-11-14 21:00:00">2026-11-14</time></div></div><div class="aside-list-item no-cover"><div class="content"><a class="title" href="/2026/11/14/study-workbench-service-ai/" title="给复习页接上 SQLite 和 AI 评分：Key 不能进浏览器">给复习页接上 SQLite 和 AI 评分：Key 不能进浏览器</a><time datetime="2026-11-14T13:00:00.000Z" title="发表于 2026-11-14 21:00:00">2026-11-14</time></div></div><div class="aside-list-item no-cover"><div class="content"><a class="title" href="/2026/11/14/study-workbench-frontend/" title="给自己搭了个课程复习平台">给自己搭了个课程复习平台</a><time datetime="2026-11-14T12:00:00.000Z" title="发表于 2026-11-14 20:00:00">2026-11-14</time></div></div><div class="aside-list-item no-cover"><div class="content"><a class="title" href="/2026/11/14/mindmap-editor-tool/" title="161 个测试节点的导图工具：simple-mind-map 加四个插件">161 个测试节点的导图工具：simple-mind-map 加四个插件</a><time datetime="2026-11-14T08:40:00.000Z" title="发表于 2026-11-14 16:40:00">2026-11-14</time></div></div><div class="aside-list-item no-cover"><div class="content"><a class="title" href="/2026/11/04/teci-iteration-workflow/" title="打完 28 轮迭代，我留下的几条工程习惯">打完 28 轮迭代，我留下的几条工程习惯</a><time datetime="2026-11-04T13:30:00.000Z" title="发表于 2026-11-04 21:30:00">2026-11-04</time></div></div></div></div></div></div></main><footer id="footer"><div class="footer-other"><div class="footer-copyright"><span class="copyright">&copy;&nbsp;2026 By aidon</span><span class="framework-info"><span>框架 </span><a target="_blank" rel="noopener" href="https://hexo.io">Hexo 7.3.0</a><span class="footer-separator">|</span><span>主题 </span><a target="_blank" rel="noopener" href="https://github.com/jerryc127/hexo-theme-butterfly">Butterfly 5.6.0</a></span></div></div></footer></div><div id="rightside"><div id="rightside-config-hide"><button id="readmode" type="button" title="阅读模式"><i class="fas fa-book-open"></i></button><button id="darkmode" type="button" title="日间和夜间模式切换"><i class="fas fa-adjust"></i></button><button id="hide-aside-btn" type="button" title="单栏和双栏切换"><i class="fas fa-arrows-alt-h"></i></button></div><div id="rightside-config-show"><button id="rightside-config" type="button" title="设置"><i class="fas fa-cog fa-spin"></i></button><button class="close" id="mobile-toc-button" type="button" title="目录"><i class="fas fa-list-ul"></i></button><button id="go-up" type="button" title="回到顶部"><span class="scroll-percent"></span><i class="fas fa-arrow-up"></i></button></div></div><div><script src="/js/utils.js?v=5.6.0"></script><script src="/js/main.js?v=5.6.0"></script><script src="https://cdn.jsdelivr.net/npm/vanilla-lazyload@19.1.3/dist/lazyload.iife.min.js"></script><div class="js-pjax"><script>(() => {
+  const parseViewBox = viewBox => {
+    if (!viewBox) return null
+    const parts = viewBox.trim().split(/[\s,]+/).map(n => Number(n))
+    if (parts.length !== 4 || parts.some(n => Number.isNaN(n))) return null
+    return parts
+  }
+
+  const getSvgViewBox = svg => {
+    const attr = parseViewBox(svg.getAttribute('viewBox'))
+    if (attr) return attr
+
+    // Fallback: use bbox to build a viewBox
+    try {
+      const bbox = svg.getBBox()
+      if (bbox && bbox.width && bbox.height) return [bbox.x, bbox.y, bbox.width, bbox.height]
+    } catch (e) {
+      // getBBox may fail on some edge cases; ignore
+    }
+
+    const w = Number(svg.getAttribute('width')) || 0
+    const h = Number(svg.getAttribute('height')) || 0
+    if (w > 0 && h > 0) return [0, 0, w, h]
+    return [0, 0, 100, 100]
+  }
+
+  const setSvgViewBox = (svg, vb) => {
+    svg.setAttribute('viewBox', `${vb[0]} ${vb[1]} ${vb[2]} ${vb[3]}`)
+  }
+
+  const clamp = (v, min, max) => Math.max(min, Math.min(max, v))
+
+  const openSvgInNewTab = ({ source, initViewBox }) => {
+    const getClonedSvg = () => {
+      if (typeof source === 'string') {
+        const template = document.createElement('template')
+        template.innerHTML = source.trim()
+        const svg = template.content.querySelector('svg')
+        return svg ? svg.cloneNode(true) : null
+      }
+      if (source && typeof source.cloneNode === 'function') {
+        return source.cloneNode(true)
+      }
+      return null
+    }
+
+    const clone = getClonedSvg()
+    if (!clone) return
+    if (initViewBox && initViewBox.length === 4) {
+      clone.setAttribute('viewBox', initViewBox.join(' '))
+    }
+    if (!clone.getAttribute('xmlns')) clone.setAttribute('xmlns', 'http://www.w3.org/2000/svg')
+    if (!clone.getAttribute('xmlns:xlink') && clone.innerHTML.includes('xlink:')) {
+      clone.setAttribute('xmlns:xlink', 'http://www.w3.org/1999/xlink')
+    }
+    // inject background to match current theme
+    const isDark = document.documentElement.getAttribute('data-theme') === 'dark'
+    const bg = getComputedStyle(document.body).backgroundColor || (isDark ? '#1e1e1e' : '#ffffff')
+    if (!clone.style.background) clone.style.background = bg
+
+    const serializer = new XMLSerializer()
+    const svgSource = serializer.serializeToString(clone)
+    const htmlSource = `<!doctype html><html><head><meta charset="utf-8" />
+      <style>
+        html, body { width: 100%; height: 100%; margin: 0; display: flex; align-items: center; justify-content: center; background: ${bg}; }
+        svg { max-width: 100%; max-height: 100%; height: auto; width: auto; }
+      </style>
+      </head><body>${svgSource}</body></html>`
+    const blob = new Blob([htmlSource], { type: 'text/html;charset=utf-8' })
+    const url = URL.createObjectURL(blob)
+    window.open(url, '_blank', 'noopener')
+
+    setTimeout(() => URL.revokeObjectURL(url), 5000)
+  }
+
+  const attachMermaidViewerButton = wrap => {
+    let btn = wrap.querySelector('.mermaid-open-btn')
+    if (!btn) {
+      btn = document.createElement('button')
+      btn.type = 'button'
+      btn.className = 'mermaid-open-btn'
+      wrap.appendChild(btn)
+    }
+
+    btn.innerHTML = '<i class="fa fa-search fa-fw" aria-hidden="true"></i>'
+
+    if (!btn.__mermaidViewerBound) {
+      btn.addEventListener('click', e => {
+        e.preventDefault()
+        e.stopPropagation()
+        const svg = wrap.__mermaidOriginalSvg || wrap.querySelector('svg')
+        if (!svg) return
+        const initViewBox = wrap.__mermaidInitViewBox
+        openSvgInNewTab({ source: svg, initViewBox })
+      })
+      btn.__mermaidViewerBound = true
+    }
+  }
+
+  // Zoom around a point (px, py) in the SVG viewport (in viewBox coordinates)
+  const zoomAtPoint = (vb, factor, px, py) => {
+    const w = vb[2] * factor
+    const h = vb[3] * factor
+    const nx = px - (px - vb[0]) * factor
+    const ny = py - (py - vb[1]) * factor
+    return [nx, ny, w, h]
+  }
+
+  const initMermaidGestures = wrap => {
+    // Clean up previous event listeners and pending frames
+    if (wrap.__mermaidAbortController) {
+      wrap.__mermaidAbortController.abort()
+      if (wrap.__mermaidRafId) cancelAnimationFrame(wrap.__mermaidRafId)
+    }
+    const ac = new AbortController()
+    wrap.__mermaidAbortController = ac
+    const svg = wrap.querySelector('svg')
+    if (!svg) return
+
+    // Ensure viewBox exists so gestures always work
+    const initVb = getSvgViewBox(svg)
+    wrap.__mermaidInitViewBox = initVb
+    wrap.__mermaidCurViewBox = initVb.slice()
+    setSvgViewBox(svg, initVb)
+    // Disable default gestures to prevent scroll chaining and pinch-zoom penetration in Chrome
+    svg.style.touchAction = 'none'
+
+    // Cache BoundingClientRect, throttled on scroll to reduce reflow
+    let cachedRect = svg.getBoundingClientRect()
+    let rectDirty = false
+    const markRectDirty = () => { rectDirty = true }
+    window.addEventListener('resize', markRectDirty, { signal: ac.signal })
+    window.addEventListener('scroll', markRectDirty, { signal: ac.signal, capture: true })
+    const getRect = () => {
+      if (rectDirty) {
+        cachedRect = svg.getBoundingClientRect()
+        rectDirty = false
+      }
+      return cachedRect
+    }
+
+    // Precompute clamp bounds from initial viewBox
+    const minW = initVb[2] * 0.1
+    const maxW = initVb[2] * 10
+    const minH = initVb[3] * 0.1
+    const maxH = initVb[3] * 10
+    const clampVb = vb => {
+      const out = vb.slice()
+      out[2] = clamp(out[2], minW, maxW)
+      out[3] = clamp(out[3], minH, maxH)
+      return out
+    }
+
+    // Throttle DOM updates using requestAnimationFrame
+    let pendingVb = null
+    let rafId = null
+    const applyVb = () => {
+      if (pendingVb) {
+        wrap.__mermaidCurViewBox = pendingVb
+        setSvgViewBox(svg, pendingVb)
+        pendingVb = null
+      }
+      rafId = null
+      wrap.__mermaidRafId = null
+    }
+    const setCurVb = vb => {
+      pendingVb = clampVb(vb)
+      if (!rafId) {
+        rafId = requestAnimationFrame(applyVb)
+        wrap.__mermaidRafId = rafId
+      }
+    }
+
+    const state = {
+      pointers: new Map(),
+      startVb: null,
+      startDist: 0,
+      lastPointerX: 0,
+      lastPointerY: 0
+    }
+
+    const onPointerDown = e => {
+      if (e.pointerType === 'mouse' && e.button !== 0) return
+      svg.setPointerCapture(e.pointerId)
+      const curVb = wrap.__mermaidCurViewBox
+      state.pointers.set(e.pointerId, { x: e.clientX, y: e.clientY })
+      if (state.pointers.size === 1) {
+        state.startVb = curVb.slice()
+        state.lastPointerX = e.clientX
+        state.lastPointerY = e.clientY
+      } else if (state.pointers.size === 2) {
+        const pts = [...state.pointers.values()]
+        const dx = pts[0].x - pts[1].x
+        const dy = pts[0].y - pts[1].y
+        state.startDist = Math.hypot(dx, dy)
+        state.startVb = curVb.slice()
+      }
+    }
+
+    const onPointerMove = e => {
+      if (!state.pointers.has(e.pointerId)) return
+      state.pointers.set(e.pointerId, { x: e.clientX, y: e.clientY })
+      const curVb = wrap.__mermaidCurViewBox
+      const rect = getRect()
+      if (state.pointers.size === 1 && state.startVb) {
+        const p = state.pointers.values().next().value
+        const dxClient = p.x - state.lastPointerX
+        const dyClient = p.y - state.lastPointerY
+        state.lastPointerX = p.x
+        state.lastPointerY = p.y
+        const dx = dxClient * (curVb[2] / rect.width)
+        const dy = dyClient * (curVb[3] / rect.height)
+        setCurVb([curVb[0] - dx, curVb[1] - dy, curVb[2], curVb[3]])
+        return
+      }
+      if (state.pointers.size === 2 && state.startVb && state.startDist > 0) {
+        const pts = [...state.pointers.values()]
+        const dx = pts[0].x - pts[1].x
+        const dy = pts[0].y - pts[1].y
+        const dist = Math.hypot(dx, dy)
+        if (!dist) return
+        const factor = state.startDist / dist
+        const cx = (pts[0].x + pts[1].x) / 2
+        const cy = (pts[0].y + pts[1].y) / 2
+        const px = curVb[0] + (cx - rect.left) * (curVb[2] / rect.width)
+        const py = curVb[1] + (cy - rect.top) * (curVb[3] / rect.height)
+        setCurVb(zoomAtPoint(state.startVb, factor, px, py))
+      }
+    }
+
+    const onPointerUpOrCancel = e => {
+      // Release PointerCapture to avoid event capture anomalies
+      if (svg.hasPointerCapture && svg.hasPointerCapture(e.pointerId)) {
+        svg.releasePointerCapture(e.pointerId)
+      }
+      state.pointers.delete(e.pointerId)
+      if (state.pointers.size === 0) {
+        state.startVb = null
+        state.startDist = 0
+      } else if (state.pointers.size === 1) {
+        const p = state.pointers.values().next().value
+        state.lastPointerX = p.x
+        state.lastPointerY = p.y
+      }
+    }
+
+    const onWheel = e => {
+      // Prevent event bubbling from triggering external scroll
+      e.preventDefault()
+      e.stopPropagation()
+      // Normalize deltaY across deltaMode (Chrome uses pixels, Safari uses lines)
+      let delta = e.deltaY
+      if (e.deltaMode === 1) delta *= 16
+      else if (e.deltaMode === 2) delta *= 400
+
+      // Continuous zoom factor: smoother than fixed 1.1/0.9 steps
+      const zoomFactor = Math.pow(1.001, delta)
+
+      const curVb = wrap.__mermaidCurViewBox
+      const rect = getRect()
+      const px = curVb[0] + (e.clientX - rect.left) * (curVb[2] / rect.width)
+      const py = curVb[1] + (e.clientY - rect.top) * (curVb[3] / rect.height)
+      setCurVb(zoomAtPoint(curVb, zoomFactor, px, py))
+    }
+
+    const onDblClick = () => {
+      const init = wrap.__mermaidInitViewBox
+      if (init) setCurVb(init)
+    }
+
+    svg.addEventListener('pointerdown', onPointerDown, { signal: ac.signal })
+    svg.addEventListener('pointermove', onPointerMove, { signal: ac.signal })
+    svg.addEventListener('pointerup', onPointerUpOrCancel, { signal: ac.signal })
+    svg.addEventListener('pointercancel', onPointerUpOrCancel, { signal: ac.signal })
+    svg.addEventListener('wheel', onWheel, { passive: false, signal: ac.signal })
+    svg.addEventListener('dblclick', onDblClick, { signal: ac.signal })
+  }
+
+  const runMermaid = ele => {
+    window.loadMermaid = true
+    const theme = document.documentElement.getAttribute('data-theme') === 'dark' ? 'dark' : 'default'
+    ele.forEach((item, index) => {
+      const mermaidSrc = item.firstElementChild
+      // Clean up event listeners before removing old SVG
+      if (item.__mermaidAbortController) {
+        item.__mermaidAbortController.abort()
+      }
+      const oldSvg = item.querySelector('svg')
+      if (oldSvg) oldSvg.remove()
+      let config = {}
+      try {
+        config = mermaidSrc.dataset.config ? JSON.parse(mermaidSrc.dataset.config) : {}
+      } catch (e) {
+        console.warn('[mermaid] failed to parse dataset.config:', e)
+      }
+      if (!config.theme) {
+        config.theme = theme
+      }
+      const mermaidThemeConfig = `%%{init: ${JSON.stringify(config)}}%%\n`
+      const mermaidID = `mermaid-${index}`
+      const mermaidDefinition = mermaidThemeConfig + mermaidSrc.textContent
+
+      const renderMermaid = svg => {
+        mermaidSrc.insertAdjacentHTML('afterend', svg)
+        if (true) initMermaidGestures(item)
+        item.__mermaidOriginalSvg = svg
+        if (true) attachMermaidViewerButton(item)
+      }
+
+      const handleError = err => {
+        console.error(`[mermaid] render failed for block #${index}:`, err)
+        const errorEl = document.createElement('div')
+        errorEl.className = 'mermaid-error'
+        errorEl.textContent = `Mermaid render error: ${err.message || err}`
+        mermaidSrc.insertAdjacentElement('afterend', errorEl)
+      }
+
+      try {
+        const renderFn = mermaid.render(mermaidID, mermaidDefinition)
+        // mermaid v9 and v10 compatibility
+        if (typeof renderFn === 'string') {
+          renderMermaid(renderFn)
+        } else {
+          renderFn.then(({ svg }) => renderMermaid(svg)).catch(handleError)
+        }
+      } catch (err) {
+        handleError(err)
+      }
+    })
+  }
+
+  const codeToMermaid = $article => {
+    const codeMermaidEle = $article.querySelectorAll('pre > code.mermaid')
+    if (codeMermaidEle.length === 0) return
+
+    codeMermaidEle.forEach(ele => {
+      const preEle = document.createElement('pre')
+      preEle.className = 'mermaid-src'
+      preEle.hidden = true
+      preEle.textContent = ele.textContent
+      const newEle = document.createElement('div')
+      newEle.className = 'mermaid-wrap'
+      newEle.appendChild(preEle)
+      ele.parentNode.replaceWith(newEle)
+    })
+  }
+
+  const loadMermaid = () => {
+    const $article = document.getElementById('article-container')
+    if (!$article) return
+
+    if (false) codeToMermaid($article)
+    const $mermaid = $article.querySelectorAll('.mermaid-wrap')
+    if ($mermaid.length === 0) return
+
+    const runMermaidFn = () => runMermaid($mermaid)
+    btf.addGlobalFn('themeChange', runMermaidFn, 'mermaid')
+    window.loadMermaid ? runMermaidFn() : btf.getScript('https://cdn.jsdelivr.net/npm/mermaid@11.16.0/dist/mermaid.min.js').then(runMermaidFn)
+  }
+
+  btf.addGlobalFn('encrypt', loadMermaid, 'mermaid')
+  window.pjax ? loadMermaid() : document.addEventListener('DOMContentLoaded', loadMermaid)
+})()</script></div><script async data-pjax src="//busuanzi.ibruce.info/busuanzi/2.3/busuanzi.pure.mini.js"></script></div></body></html>
