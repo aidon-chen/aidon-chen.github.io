@@ -11,60 +11,6 @@
   </url>
   
   <url>
-    <loc>https://aidon-chen.github.io/2026/07/20/github-pages-hexo-butterfly-deploy/</loc>
-    
-    <lastmod>2026-11-14</lastmod>
-    
-    <changefreq>monthly</changefreq>
-    <priority>0.6</priority>
-  </url>
-  
-  <url>
-    <loc>https://aidon-chen.github.io/2026/11/14/mindmap-editor-tool/</loc>
-    
-    <lastmod>2026-11-14</lastmod>
-    
-    <changefreq>monthly</changefreq>
-    <priority>0.6</priority>
-  </url>
-  
-  <url>
-    <loc>https://aidon-chen.github.io/2026/10/09/teci-embodied-inspection-overview/</loc>
-    
-    <lastmod>2026-11-14</lastmod>
-    
-    <changefreq>monthly</changefreq>
-    <priority>0.6</priority>
-  </url>
-  
-  <url>
-    <loc>https://aidon-chen.github.io/2026/10/30/teci-arm-reach-diagnosis/</loc>
-    
-    <lastmod>2026-11-14</lastmod>
-    
-    <changefreq>monthly</changefreq>
-    <priority>0.6</priority>
-  </url>
-  
-  <url>
-    <loc>https://aidon-chen.github.io/2026/11/04/teci-iteration-workflow/</loc>
-    
-    <lastmod>2026-11-14</lastmod>
-    
-    <changefreq>monthly</changefreq>
-    <priority>0.6</priority>
-  </url>
-  
-  <url>
-    <loc>https://aidon-chen.github.io/2026/11/04/teci-meter-reading-numpy-cv/</loc>
-    
-    <lastmod>2026-11-14</lastmod>
-    
-    <changefreq>monthly</changefreq>
-    <priority>0.6</priority>
-  </url>
-  
-  <url>
     <loc>https://aidon-chen.github.io/2026/10/13/trae-1010-campus-activity/</loc>
     
     <lastmod>2026-11-14</lastmod>
@@ -93,6 +39,78 @@
   
   <url>
     <loc>https://aidon-chen.github.io/gallery/index.html</loc>
+    
+    <lastmod>2026-11-14</lastmod>
+    
+    <changefreq>monthly</changefreq>
+    <priority>0.6</priority>
+  </url>
+  
+  <url>
+    <loc>https://aidon-chen.github.io/2026/07/20/github-pages-hexo-butterfly-deploy/</loc>
+    
+    <lastmod>2026-11-14</lastmod>
+    
+    <changefreq>monthly</changefreq>
+    <priority>0.6</priority>
+  </url>
+  
+  <url>
+    <loc>https://aidon-chen.github.io/2026/11/14/mindmap-editor-tool/</loc>
+    
+    <lastmod>2026-11-14</lastmod>
+    
+    <changefreq>monthly</changefreq>
+    <priority>0.6</priority>
+  </url>
+  
+  <url>
+    <loc>https://aidon-chen.github.io/2026/11/14/study-workbench-frontend/</loc>
+    
+    <lastmod>2026-11-14</lastmod>
+    
+    <changefreq>monthly</changefreq>
+    <priority>0.6</priority>
+  </url>
+  
+  <url>
+    <loc>https://aidon-chen.github.io/2026/10/30/teci-arm-reach-diagnosis/</loc>
+    
+    <lastmod>2026-11-14</lastmod>
+    
+    <changefreq>monthly</changefreq>
+    <priority>0.6</priority>
+  </url>
+  
+  <url>
+    <loc>https://aidon-chen.github.io/2026/11/14/study-workbench-service-ai/</loc>
+    
+    <lastmod>2026-11-14</lastmod>
+    
+    <changefreq>monthly</changefreq>
+    <priority>0.6</priority>
+  </url>
+  
+  <url>
+    <loc>https://aidon-chen.github.io/2026/10/09/teci-embodied-inspection-overview/</loc>
+    
+    <lastmod>2026-11-14</lastmod>
+    
+    <changefreq>monthly</changefreq>
+    <priority>0.6</priority>
+  </url>
+  
+  <url>
+    <loc>https://aidon-chen.github.io/2026/11/04/teci-iteration-workflow/</loc>
+    
+    <lastmod>2026-11-14</lastmod>
+    
+    <changefreq>monthly</changefreq>
+    <priority>0.6</priority>
+  </url>
+  
+  <url>
+    <loc>https://aidon-chen.github.io/2026/11/04/teci-meter-reading-numpy-cv/</loc>
     
     <lastmod>2026-11-14</lastmod>
     
@@ -188,6 +206,20 @@
   </url>
   
   <url>
+    <loc>https://aidon-chen.github.io/tags/%E9%9A%8F%E7%AC%94/</loc>
+    <lastmod>2026-11-14</lastmod>
+    <changefreq>weekly</changefreq>
+    <priority>0.2</priority>
+  </url>
+  
+  <url>
+    <loc>https://aidon-chen.github.io/tags/%E5%8D%9A%E5%AE%A2/</loc>
+    <lastmod>2026-11-14</lastmod>
+    <changefreq>weekly</changefreq>
+    <priority>0.2</priority>
+  </url>
+  
+  <url>
     <loc>https://aidon-chen.github.io/tags/%E6%BC%94%E7%A4%BA/</loc>
     <lastmod>2026-11-14</lastmod>
     <changefreq>weekly</changefreq>
@@ -203,20 +235,6 @@
   
   <url>
     <loc>https://aidon-chen.github.io/tags/Markdown/</loc>
-    <lastmod>2026-11-14</lastmod>
-    <changefreq>weekly</changefreq>
-    <priority>0.2</priority>
-  </url>
-  
-  <url>
-    <loc>https://aidon-chen.github.io/tags/%E9%9A%8F%E7%AC%94/</loc>
-    <lastmod>2026-11-14</lastmod>
-    <changefreq>weekly</changefreq>
-    <priority>0.2</priority>
-  </url>
-  
-  <url>
-    <loc>https://aidon-chen.github.io/tags/%E5%8D%9A%E5%AE%A2/</loc>
     <lastmod>2026-11-14</lastmod>
     <changefreq>weekly</changefreq>
     <priority>0.2</priority>
@@ -293,7 +311,77 @@
   </url>
   
   <url>
+    <loc>https://aidon-chen.github.io/tags/%E5%8E%9F%E7%94%9F-JavaScript/</loc>
+    <lastmod>2026-11-14</lastmod>
+    <changefreq>weekly</changefreq>
+    <priority>0.2</priority>
+  </url>
+  
+  <url>
+    <loc>https://aidon-chen.github.io/tags/%E7%9F%A5%E8%AF%86%E5%9B%BE%E8%B0%B1/</loc>
+    <lastmod>2026-11-14</lastmod>
+    <changefreq>weekly</changefreq>
+    <priority>0.2</priority>
+  </url>
+  
+  <url>
+    <loc>https://aidon-chen.github.io/tags/%E5%89%8D%E7%AB%AF/</loc>
+    <lastmod>2026-11-14</lastmod>
+    <changefreq>weekly</changefreq>
+    <priority>0.2</priority>
+  </url>
+  
+  <url>
+    <loc>https://aidon-chen.github.io/tags/%E8%AF%BE%E7%A8%8B%E5%A4%8D%E4%B9%A0/</loc>
+    <lastmod>2026-11-14</lastmod>
+    <changefreq>weekly</changefreq>
+    <priority>0.2</priority>
+  </url>
+  
+  <url>
+    <loc>https://aidon-chen.github.io/tags/%E6%9C%BA%E5%99%A8%E4%BA%BA%E6%8E%A7%E5%88%B6/</loc>
+    <lastmod>2026-11-14</lastmod>
+    <changefreq>weekly</changefreq>
+    <priority>0.2</priority>
+  </url>
+  
+  <url>
     <loc>https://aidon-chen.github.io/tags/MuJoCo/</loc>
+    <lastmod>2026-11-14</lastmod>
+    <changefreq>weekly</changefreq>
+    <priority>0.2</priority>
+  </url>
+  
+  <url>
+    <loc>https://aidon-chen.github.io/tags/%E6%9C%BA%E6%A2%B0%E8%87%82/</loc>
+    <lastmod>2026-11-14</lastmod>
+    <changefreq>weekly</changefreq>
+    <priority>0.2</priority>
+  </url>
+  
+  <url>
+    <loc>https://aidon-chen.github.io/tags/%E6%AF%94%E8%B5%9B%E5%A4%8D%E7%9B%98/</loc>
+    <lastmod>2026-11-14</lastmod>
+    <changefreq>weekly</changefreq>
+    <priority>0.2</priority>
+  </url>
+  
+  <url>
+    <loc>https://aidon-chen.github.io/tags/SQLite/</loc>
+    <lastmod>2026-11-14</lastmod>
+    <changefreq>weekly</changefreq>
+    <priority>0.2</priority>
+  </url>
+  
+  <url>
+    <loc>https://aidon-chen.github.io/tags/Node-js/</loc>
+    <lastmod>2026-11-14</lastmod>
+    <changefreq>weekly</changefreq>
+    <priority>0.2</priority>
+  </url>
+  
+  <url>
+    <loc>https://aidon-chen.github.io/tags/AI-%E8%AF%84%E5%88%86/</loc>
     <lastmod>2026-11-14</lastmod>
     <changefreq>weekly</changefreq>
     <priority>0.2</priority>
@@ -321,28 +409,7 @@
   </url>
   
   <url>
-    <loc>https://aidon-chen.github.io/tags/%E6%AF%94%E8%B5%9B%E5%A4%8D%E7%9B%98/</loc>
-    <lastmod>2026-11-14</lastmod>
-    <changefreq>weekly</changefreq>
-    <priority>0.2</priority>
-  </url>
-  
-  <url>
     <loc>https://aidon-chen.github.io/tags/robosuite/</loc>
-    <lastmod>2026-11-14</lastmod>
-    <changefreq>weekly</changefreq>
-    <priority>0.2</priority>
-  </url>
-  
-  <url>
-    <loc>https://aidon-chen.github.io/tags/%E6%9C%BA%E5%99%A8%E4%BA%BA%E6%8E%A7%E5%88%B6/</loc>
-    <lastmod>2026-11-14</lastmod>
-    <changefreq>weekly</changefreq>
-    <priority>0.2</priority>
-  </url>
-  
-  <url>
-    <loc>https://aidon-chen.github.io/tags/%E6%9C%BA%E6%A2%B0%E8%87%82/</loc>
     <lastmod>2026-11-14</lastmod>
     <changefreq>weekly</changefreq>
     <priority>0.2</priority>
@@ -405,20 +472,6 @@
   </url>
   
   <url>
-    <loc>https://aidon-chen.github.io/tags/Node-js/</loc>
-    <lastmod>2026-11-14</lastmod>
-    <changefreq>weekly</changefreq>
-    <priority>0.2</priority>
-  </url>
-  
-  <url>
-    <loc>https://aidon-chen.github.io/tags/SQLite/</loc>
-    <lastmod>2026-11-14</lastmod>
-    <changefreq>weekly</changefreq>
-    <priority>0.2</priority>
-  </url>
-  
-  <url>
     <loc>https://aidon-chen.github.io/tags/web/</loc>
     <lastmod>2026-11-14</lastmod>
     <changefreq>weekly</changefreq>
@@ -442,13 +495,6 @@
   </url>
   
   <url>
-    <loc>https://aidon-chen.github.io/categories/%E6%8A%80%E6%9C%AF/</loc>
-    <lastmod>2026-11-14</lastmod>
-    <changefreq>weekly</changefreq>
-    <priority>0.2</priority>
-  </url>
-  
-  <url>
     <loc>https://aidon-chen.github.io/categories/%E7%94%9F%E6%B4%BB/</loc>
     <lastmod>2026-11-14</lastmod>
     <changefreq>weekly</changefreq>
@@ -456,7 +502,21 @@
   </url>
   
   <url>
+    <loc>https://aidon-chen.github.io/categories/%E6%8A%80%E6%9C%AF/</loc>
+    <lastmod>2026-11-14</lastmod>
+    <changefreq>weekly</changefreq>
+    <priority>0.2</priority>
+  </url>
+  
+  <url>
     <loc>https://aidon-chen.github.io/categories/%E5%89%8D%E7%AB%AF/</loc>
+    <lastmod>2026-11-14</lastmod>
+    <changefreq>weekly</changefreq>
+    <priority>0.2</priority>
+  </url>
+  
+  <url>
+    <loc>https://aidon-chen.github.io/categories/%E9%A1%B9%E7%9B%AE%E5%A4%8D%E7%9B%98/</loc>
     <lastmod>2026-11-14</lastmod>
     <changefreq>weekly</changefreq>
     <priority>0.2</priority>
