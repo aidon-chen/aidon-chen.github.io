@@ -19,6 +19,14 @@ mathjax:
   enable: true
   per_page: true
 
+# Mermaid 图表（正文用 {% mermaid %} 标签）
+mermaid:
+  enable: true
+  code_write: false
+  theme:
+    light: default
+    dark: dark
+
 # 搜索
 search:
   use: local
@@ -62,6 +70,9 @@ footer:
 avatar:
   img: /img/avatar.png
   effect: false
+
+# 网站图标
+favicon: /img/favicon.ico
 
 # 目录
 toc:

@@ -58,7 +58,7 @@ toc: true
 
 所以评分只能经过本地服务：前端 `quiz-ai.js` 只请求 `/api/grade/config` 和 `/api/grade`，Key 由服务端从 `.env`、环境变量或 `ai.config.json` 里读，三个文件都在 `.gitignore` 里。没配置 Key 的时候，按钮还在，点下去提示「未配置 AI_API_KEY」，不会静默失败。
 
-![课后练习页，题目卡片上有 AI 评分按钮](/img/study/quiz.webp)
+![课后练习页：题目卡片、作答统计和筛选栏](/img/study/quiz.webp)
 
 提示词写在 `server.js` 的 `AI_SYSTEM_PROMPT` 里，核心是几条规定：
 
