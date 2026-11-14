@@ -1,89 +1,67 @@
 ---
-title: 给 161 个测试节点找个家：基于 simple-mind-map 的可协作思维导图工具
+title: 161 个测试节点的导图工具：simple-mind-map 加四个插件
 date: 2026-11-14 16:40:00
 categories: [前端, 工具]
 tags: [思维导图, simple-mind-map, esbuild, yjs, 协作, 测试]
-description: 给 AI 文档管理平台的 161 节点测试路线图做的可编辑思维导图：esbuild 合成四插件 UMD 包，deepmerge 垫片、禁用 minify、样式拍平三个坑，以及 y-webrtc 协作。
+description: 给测试路线图做的可编辑导图页面，以及打包 simple-mind-map 四个插件时踩的坑：deepmerge 版本、minify 崩溃、样式被静默忽略。
 comments: true
 toc: true
 ---
 
 ## 前言
 
-AI 文档管理平台的测试用例整理出来后有 161 个节点、6 个阶段（环境准备、冒烟测试、主站全量、后台与权限矩阵、异常边界、回归收口）。放在表格里看不动，放在思维导图工具里编辑不了——XMind 这类软件导来导去太麻烦，我想要的是：打开就能改、改完自动存、还能发给另一个人一起勾进度。
+AI 文档管理平台的测试用例整理完是 161 个节点，分 6 个阶段：环境准备、冒烟、主站全量、后台与权限、异常边界、回归收口。一开始用表格管，管着管着就乱了，加一条用例得往下翻半天，哪块还没测也看不出来。
 
-所以写了个小工具：基于 [simple-mind-map](https://github.com/wanglin2/mind-map)（v0.14.0，MIT）的可编辑思维导图，内置富文本、关联线、图片导出、多人协作四个插件。工具与导图数据完全分离，换一份 `roadmap.json` 就能复用到任何项目。
+想过用 XMind，导进导出太烦。干脆拿 simple-mind-map 包一层，做成一个能直接改、改完自己存、还能拉个人一起勾的页面。
 
-## 时间线（按 git 记录）
+## 时间
 
-仓库的提交历史只有一条：
+仓库只有一次提交，2026-11-04 13:31，就一句「新增独立思维导图测试工具」，推上去时仓库也刚建好，后来没有再动。
 
-- **2026-11-04 13:31**：唯一一次提交 `新增独立思维导图测试工具`，推到 GitHub 并创建仓库（13:31:44）。
-- **截至 2026-11-14**：`master` 分支没有新的 commit。
+折腾其实都在提交之前。`vendor/PLUGINS.md` 里记着两天：11 月 3 号把四个插件打成一个包，跑了一轮浏览器自动化验证；11 月 4 号发现节点自定义样式不生效，翻源码才找到原因，顺手把 `roadmap.json` 也改了。
 
-不过仓库内的 `vendor/PLUGINS.md` 留了带日期的工作记录，可以补出实际过程：**2026-11-03** 完成 simple-mind-map 四插件打包、浏览器端到端自动化验证；**2026-11-04** 修复节点自定义样式被静默忽略的问题并同步拍平 `roadmap.json`。
+## 用起来是这样
 
-## 工具长什么样
+单页，顶栏工具栏，中间画布，底下一行快捷键提示。点中节点按 `Tab` 加子节点、`Enter` 加同级、`Delete` 删掉，双击进富文本编辑，能改字号颜色。关联线先点起点，点「＋ 关联线」，再点目标节点。导出有 PNG、SVG、JSON，导入只认 JSON，「恢复初始」把图打回原样。
 
-一个单页：深色顶栏放工具栏，中间是导图画布，底部一行快捷键提示。操作全部跟手：
+改完 400ms 防抖写一次 localStorage，关页面前再补一次，基本不丢。底部右侧会显示「已自动保存 14:32」，看着踏实。
 
-1. 点选节点后 `Tab` 加子节点、`Enter` 加同级、`Delete` 删除，也可用工具栏按钮；
-2. 双击节点直接出 Quill 富文本工具条（加粗、字号、颜色）；
-3. 关联线：选中起点 → 点「＋ 关联线」→ 点目标节点，点选连线按 `Delete` 删除；
-4. 导出 PNG / SVG / JSON，也能导入 JSON；「恢复初始」一键还原路线图；
-5. 「加入协作」输入房间名，同一房间名的浏览器实时互相同步。
+## 工具和数据分开
 
-数据变化后 400ms 防抖写入 localStorage，页面关闭前（`beforeunload`）再强制落盘一次，刷新不丢。
+页面启动先 fetch 一个 `roadmap.json`，结构是 `{ root: { data, children } }`，去掉外面一层壳直接塞给构造函数。现在里面装的是那份测试路线图，换项目就换这个文件，页面不用动。
 
-## 工具与数据分离
+代价是不能双击打开，fetch 在 `file://` 下会被拦，得起个 `python3 -m http.server 8877`。也算提醒自己这不是给终端用户装的应用，是个本地小工具。
 
-页面启动时 `fetch('./roadmap.json')`，拿到的是 `{ "root": { "data": { "text": "..." }, "children": [...] } }` 结构，去掉外层包装直接喂给构造函数。当前内置的就是那份 161 节点的测试路线图；换成自己的导图，只需要改这个 JSON 文件，页面一行代码不用动。节点还可以带扁平的自定义样式（`fillColor`、`fontSize`、`borderRadius` 等）。
+## 打包最费劲
 
-这也是它叫「测试工具」而不是「应用」的原因——没有后端、没有账号体系，`python3 -m http.server 8877` 起个静态服务就能跑（fetch 不支持 `file://` 直开）。
+npm 包的 dist 里只有核心，四个插件都在 `src/plugins/` 下是 ESM 源码，得自己合。用 esbuild 打成 IIFE，1.6MB 没压缩，一个 script 标签引进去。Cooperate 比较特殊，不走 `usePlugin`，是 new 出来再 `setProvider`。
 
-## 打包：把四个插件合进一个 IIFE
+命令行里 `--preserve-symlinks` 和 deepmerge 的 alias 少一个就起不来。前后卡了三处：
 
-npm 包的 `dist/` 只有核心 UMD 产物，富文本、关联线、导出、协作这些插件全在 `src/plugins/` 下以 ESM 源码形式提供，需要自己用 esbuild 合成一份：
+1. **deepmerge 版本**。库声明 `^1.5.2`，esbuild 直接装会拿到 v4。v4 的 `isMergeableObject` 不认 DOM 元素，构造函数里 `deepmerge(defaultOpt, opt)` 就把 `el` 这个容器深拷贝成空对象，报 `this.el.getBoundingClientRect is not a function`，盯着这句话看了很久也没想通跟 el 什么关系。最后加 alias 指向自己写的垫片，只合并纯对象和数组，才过。
+2. **minify 崩**。加 `--minify` 打包正常，一跑就 `RangeError: Maximum call stack size exceeded`，去掉就好。查了下跟 quill、yjs 有关，具体哪行没深究。反正本地工具，1.6MB 就 1.6MB。
+3. **样式被吃掉**。给根节点设了深色，跑起来还是库默认那个绿。翻源码发现它读的是 `data.fillColor` 这种平铺属性，我写成了 `data.style.fillColor`，嵌套的直接忽略，也不报错。改成 `Object.assign` 拍平就好，`roadmap.json` 里也得同步。
 
-```bash
-esbuild entry.js --bundle --format=iife --global-name=simpleMindMap \
-  --preserve-symlinks \
-  --alias:deepmerge=./shims/deepmerge.js \
-  --define:process.env.NODE_ENV='"production"'
-```
+## 161 个节点带来的麻烦
 
-产物 `simpleMindMap.full.js` 1.6MB（未压缩），包含核心 + RichText / AssociativeLine / Export / Cooperate，页面一个 `<script>` 引入。Cooperate 不走 `usePlugin`，实例化后 `setProvider` 绑定房间名和信令地址。入口文件和垫片都留档在仓库 `build/` 目录，重新打包照着做即可。
+图太大，fit 一下缩到 10%，字糊成一条线，点都点不准。所以初始和「回到中心」都把缩放下限锁在 100%，宁可超出去拖着看，也不缩到看不清。
 
-## 三个坑
+还有个更奇怪的，节点文字只显示上半截。库按 `measureText` 给 `foreignObject` 估宽高，但没管 `<p>` 默认的 1em 上下外边距，文字被顶出框，白字落白底就只剩上面一点。CSS 里把 `p` 的 margin 清零，再加个 `translateY(-50%)` 兜一下。
 
-打包过程踩了三个坑，`PLUGINS.md` 里都记了，这里展开最关键的两个：
+另外 flex 布局下初始化太快，容器宽高还是 0，库直接抛「容器元素el的宽高不能为0」。加了个 `requestAnimationFrame` 轮询，等到有尺寸再 boot。
 
-1. **deepmerge 版本漂移**。库声明的是 `deepmerge ^1.5.2`（官方 UMD 内置 isPlainObject 语义），esbuild 直接打包会装到 v4，v4 的 `isMergeableObject` 不排除 DOM 元素——结果构造函数里 `deepmerge(defaultOpt, opt)` 把 `el` 这个 DOM 容器深拷贝成空对象，运行时报 `this.el.getBoundingClientRect is not a function`。解法是 `--alias:deepmerge=./shims/deepmerge.js`，垫片只对纯对象和数组做深合并。
+## 协作
 
-2. **`--minify` 直接崩**。压缩后运行时抛 `RangeError: Maximum call stack size exceeded`，未压缩一切正常——esbuild 的 minify 与 quill/yjs 源码存在兼容问题。本地工具不差这 1.6MB，交付未压缩产物。
+yjs 加 y-webrtc。`new Cooperate({ mindMap })` 然后 `setProvider(null, { roomName, signalingList })`，同一个房间名的浏览器实时同步，富文本格式和关联线都能带过去。
 
-3. **节点样式必须拍平**。库读取的是 `data` 上的扁平属性（`data.fillColor`），嵌套在 `data.style = {...}` 里的样式会被静默忽略，回退默认主题色——表现为根节点永远是绿色而不是自定义深色。修复就是 `Object.assign(data, style)` 把样式拍平，`roadmap.json` 也同步改了。
+信令默认走 `wss://signaling.yjs.dev`，公共的，连不连得上看网络。要正经用就自己起一个，y-webrtc 包里带着，弹窗里换地址就行，代码不用动。
 
-## 几个渲染细节
+## 验证
 
-161 个节点的大图还带来几个小问题：
-
-- **整图 fit 的可读性**：161 节点 fit 之后会被缩到 10% 左右，文字糊成一条线。所以初始和「回到中心」都设了缩放下限 100%——按可读比例铺满，宁可超出画布用平移看，也不缩小到不可读。
-- **文字被顶出节点框**：库按 `measureText` 给节点的 `foreignObject` 预估固定宽高，但没重置 `<p>` 的浏览器默认 margin（上下各 1em），白字落白底只见上半截。CSS 里重置段落外边距 + `translateY(-50%)` 垂直居中兜底。
-- **容器宽高为 0**：flex 布局下异步初始化时容器可能尚未完成布局，库会直接抛「容器元素el的宽高不能为0」。加了个 `whenLayoutReady`，用 `requestAnimationFrame` 等到拿到非零尺寸再 boot。
-
-## 协作是怎么做的
-
-协作走 yjs CRDT + y-webrtc：`new Cooperate({ mindMap })` 后 `setProvider(null, { roomName, signalingList })`，同一房间名的浏览器实时互相同步，连富文本格式和关联线都在同步范围内。
-
-信令默认用公共的 `wss://signaling.yjs.dev`（仅测试用），地址会记忆到 localStorage；生产环境建议用 `y-webrtc` 包自带的 `y-webrtc-signaling` 自建一个，在弹窗里填入自建地址即可，不需要改代码。
-
-## 浏览器端到端验证
-
-打包完成后做了一轮自动化浏览器验证，全部通过：渲染、富文本编辑 + 自动保存、关联线创建（真实点击流程）、PNG/SVG 导出、协作加入房间、增节点回归。唯一没闭环的是删线操作（点选连线变高亮后按 Delete）——合成事件对 `svg` 连线的选中模拟不可靠，这一项留了 30 秒人工点验记录在 `PLUGINS.md` 里。
+打包完跑了一轮浏览器自动化：渲染、双击编辑加自动保存、关联线、PNG 和 SVG 导出、加协作房间、增删节点都过了。只有删线没验完，点选连线让它高亮那一步，合成事件在 SVG 上不太靠得住，最后手动点了一遍，`PLUGINS.md` 里记着这条待办。
 
 ## 仓库
 
-代码在这里：[aidon-chen/mindmap-editor](https://github.com/aidon-chen/mindmap-editor)（MIT）。
+https://github.com/aidon-chen/mindmap-editor ，MIT。
 
-如果你的项目也需要一张「能编辑、能存、能协作」的导图——测试路线图、学习计划、复盘图都行——把 `roadmap.json` 换成自己的数据就能直接用；想加别的插件（小地图、搜索、XMind 导出等），`PLUGINS.md` 里有完整的插件清单和统一接入流程。
+拿去装自己的东西，改 `roadmap.json` 就行。想加插件，`PLUGINS.md` 里列了十来个，小地图、搜索、XMind 导出都有，流程照第 4 节走，主要还是那几个 esbuild 参数别漏。
