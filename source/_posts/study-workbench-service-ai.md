@@ -1,6 +1,6 @@
 ---
 title: 给复习页接上 SQLite 和 AI 评分：Key 不能进浏览器
-date: 2026-11-14 21:00:00
+date: 2026-11-05 18:01:00
 categories: [项目复盘]
 tags: [SQLite, Node.js, AI 评分, 踩坑]
 description: 纯前端版的复习记录换台电脑就没了。这篇写 11 月 5 日补上的本地服务：node:sqlite 七张表、旧数据迁移、AI 按得分点打分，以及后面还想做的三件事。
